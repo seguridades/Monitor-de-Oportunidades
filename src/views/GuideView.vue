@@ -1,6 +1,15 @@
 <script setup>
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import WelcomeModal from '@/components/onboarding/WelcomeModal.vue'
+
 const auth = useAuthStore()
+const showWelcome = ref(false)
+
+function restartTutorial() {
+  localStorage.removeItem('onboarding_done')
+  showWelcome.value = true
+}
 
 const permMatrix = [
   { action: 'Ver oportunidades aprobadas',     guest: '✓', member: '✓', admin: '✓' },
@@ -20,13 +29,23 @@ const permMatrix = [
 <template>
   <div class="p-6 max-w-3xl space-y-10">
 
-    <div>
-      <h1 class="text-xl font-semibold text-text-primary">Guía de uso</h1>
-      <p class="text-text-muted text-sm mt-1">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-xl font-semibold text-text-primary">Guía de uso</h1>
+        <p class="text-text-muted text-sm mt-1">
         Monitor de Oportunidades centraliza convocatorias, grants, fuentes de financiamiento,
         capacitaciones y redes relevantes para el trabajo de seguridad digital en América Latina.
       </p>
+      </div>
+      <button
+        @click="restartTutorial"
+        class="shrink-0 px-4 py-2 rounded-lg border border-border-base text-sm text-text-muted hover:text-accent hover:border-accent transition-colors"
+      >
+        Ver tutorial
+      </button>
     </div>
+
+    <WelcomeModal v-if="showWelcome" @close="showWelcome = false" />
 
     <!-- Secciones -->
     <section class="space-y-3">
@@ -35,14 +54,14 @@ const permMatrix = [
         <div class="bg-bg-surface border border-border-base rounded-xl p-4">
           <p class="text-sm font-medium text-text-primary mb-1">Todas las oportunidades</p>
           <p class="text-sm text-text-muted">
-            Vista principal. Muestra todas las oportunidades aprobadas. Podés filtrar por tipo,
+            Vista principal. Muestra todas las oportunidades aprobadas. Puedes filtrar por tipo,
             estado, relevancia o buscar por texto. Las tarjetas destacadas y con mayor relevancia aparecen primero.
           </p>
         </div>
         <div class="bg-bg-surface border border-border-base rounded-xl p-4">
           <p class="text-sm font-medium text-text-primary mb-1">Mi Lista</p>
           <p class="text-sm text-text-muted">
-            Oportunidades que marcaste con <strong>+ Seguir</strong>. Podés agregar notas personales,
+            Oportunidades que marcaste con <strong>+ Seguir</strong>. Puedes agregar notas personales,
             registrar tu estado de seguimiento (nueva, en revisión, aplicada, descartada) y anotar
             el resultado.
           </p>
@@ -51,7 +70,7 @@ const permMatrix = [
           <p class="text-sm font-medium text-text-primary mb-1">Pendientes</p>
           <p class="text-sm text-text-muted">
             Propuestas enviadas por usuarios invitados (rol Invitado) esperando aprobación.
-            Como miembro o admin podés aprobarlas o rechazarlas.
+            Como miembro o admin puedes aprobarlas o rechazarlas.
           </p>
         </div>
         <div v-if="auth.isAdmin" class="bg-bg-surface border border-border-base rounded-xl p-4">
@@ -130,27 +149,27 @@ const permMatrix = [
     <!-- Flujo de seguimiento -->
     <section class="space-y-3">
       <h2 class="text-sm font-semibold text-text-primary uppercase tracking-wide">Flujo de seguimiento personal</h2>
-      <p class="text-sm text-text-muted">Al hacer clic en <strong>+ Seguir</strong> en una tarjeta, la oportunidad entra en tu lista personal. Desde Mi Lista podés cambiar su estado:</p>
+      <p class="text-sm text-text-muted">Al hacer clic en <strong>+ Seguir</strong> en una tarjeta, la oportunidad entra en tu lista personal. Desde Mi Lista puedes cambiar su estado:</p>
       <div class="flex flex-wrap gap-2">
         <div class="flex items-center gap-2 bg-bg-surface border border-border-base rounded-lg px-3 py-2">
           <span class="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
           <span class="text-xs text-text-primary font-medium">Nueva</span>
-          <span class="text-xs text-text-muted">— recién agregada</span>
+          <span class="text-xs text-text-muted">- recién agregada</span>
         </div>
         <div class="flex items-center gap-2 bg-bg-surface border border-border-base rounded-lg px-3 py-2">
           <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
           <span class="text-xs text-text-primary font-medium">En revisión</span>
-          <span class="text-xs text-text-muted">— evaluando si aplicar</span>
+          <span class="text-xs text-text-muted">- evaluando si aplicar</span>
         </div>
         <div class="flex items-center gap-2 bg-bg-surface border border-border-base rounded-lg px-3 py-2">
           <span class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>
           <span class="text-xs text-text-primary font-medium">Aplicada</span>
-          <span class="text-xs text-text-muted">— aplicación enviada</span>
+          <span class="text-xs text-text-muted">- aplicación enviada</span>
         </div>
         <div class="flex items-center gap-2 bg-bg-surface border border-border-base rounded-lg px-3 py-2">
           <span class="w-2 h-2 rounded-full bg-zinc-400 shrink-0"></span>
           <span class="text-xs text-text-primary font-medium">Descartada</span>
-          <span class="text-xs text-text-muted">— no aplica por ahora</span>
+          <span class="text-xs text-text-muted">- no aplica por ahora</span>
         </div>
       </div>
     </section>

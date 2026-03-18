@@ -8,6 +8,7 @@ import { useFollowsStore } from '@/stores/follows'
 import OpportunityCard from '@/components/opportunities/OpportunityCard.vue'
 import OpportunityForm from '@/components/opportunities/OpportunityForm.vue'
 import AppModal from '@/components/ui/AppModal.vue'
+import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import { RouterLink } from 'vue-router'
 
 const auth = useAuthStore()
@@ -19,6 +20,8 @@ const typeFilter = ref('todas')
 const statusFilters = ref([])
 const fitFilters = ref([])
 const searchQuery = ref('')
+const tagFilter = ref('')
+const showFilterPanel = ref(false)
 
 // Modal state
 const showModal = ref(false)
@@ -45,6 +48,15 @@ const fitOptions = [
   { value: 'Alto', label: 'Alto' },
   { value: 'Bueno', label: 'Bueno' },
   { value: 'Selectivo', label: 'Selectivo' },
+]
+
+// Group config
+const groupOrder = [
+  { type: 'convocatoria', label: 'Convocatorias' },
+  { type: 'grant', label: 'Grants' },
+  { type: 'fuente', label: 'Fuentes' },
+  { type: 'capacitacion', label: 'Capacitaciones' },
+  { type: 'red', label: 'Redes' },
 ]
 
 // Count helpers
@@ -81,6 +93,11 @@ const filteredOpportunities = computed(() => {
   // Fit filter
   if (fitFilters.value.length > 0) {
     list = list.filter(o => fitFilters.value.includes(o.fit))
+  }
+
+  // Tag filter
+  if (tagFilter.value) {
+    list = list.filter(o => Array.isArray(o.tags) && o.tags.includes(tagFilter.value))
   }
 
   // Search
@@ -122,6 +139,36 @@ function toggleFitFilter(val) {
   else fitFilters.value.push(val)
 }
 
+const hasActiveFilters = computed(() =>
+  typeFilter.value !== 'todas' ||
+  statusFilters.value.length > 0 ||
+  fitFilters.value.length > 0 ||
+  searchQuery.value.trim() !== '' ||
+  tagFilter.value !== ''
+)
+
+function clearFilters() {
+  typeFilter.value = 'todas'
+  statusFilters.value = []
+  fitFilters.value = []
+  searchQuery.value = ''
+  tagFilter.value = ''
+}
+
+function handleFilterTag(tag) {
+  tagFilter.value = tag
+}
+
+const showGroups = computed(() => typeFilter.value === 'todas')
+
+const groupedOpportunities = computed(() =>
+  groupOrder.map(({ type, label }) => ({
+    type,
+    label,
+    items: filteredOpportunities.value.filter(o => o.type === type),
+  }))
+)
+
 function openCreate() {
   editingOpportunity.value = null
   showModal.value = true
@@ -156,7 +203,22 @@ async function handleFormSubmit(data) {
 <template>
   <div class="flex h-full">
     <!-- Filter panel -->
-    <aside class="w-52 shrink-0 border-r border-border-base bg-bg-surface overflow-y-auto p-4 space-y-5">
+    <aside
+      class="w-52 shrink-0 border-r border-border-base bg-bg-surface overflow-y-auto p-4 space-y-5"
+      :class="showFilterPanel ? 'block' : 'hidden md:block'"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold text-text-muted uppercase tracking-wider">Filtros</p>
+        <button
+          v-if="hasActiveFilters"
+          @click="clearFilters"
+          class="text-xs text-accent hover:underline"
+        >
+          × Limpiar
+        </button>
+      </div>
+
       <!-- Vista / Type -->
       <div>
         <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Vista</p>
@@ -221,19 +283,30 @@ async function handleFormSubmit(data) {
           </label>
         </div>
       </div>
+
     </aside>
 
     <!-- Main content -->
     <div class="flex-1 min-w-0 overflow-y-auto">
       <!-- Content header -->
-      <div class="sticky top-0 z-10 bg-bg-base border-b border-border-base px-6 py-3 flex items-center gap-3">
-        <h2 class="text-base font-semibold text-text-primary shrink-0">
-          Oportunidades
-          <span class="text-text-muted font-normal text-sm ml-1">{{ filteredOpportunities.length }}</span>
-        </h2>
+      <div class="sticky top-0 z-10 bg-bg-base border-b border-border-base px-4 md:px-6 py-3 flex items-center gap-3 flex-wrap">
+        <!-- Title + counter -->
+        <div class="shrink-0">
+          <h2 class="text-base font-semibold text-text-primary leading-tight">Oportunidades</h2>
+          <p class="text-xs text-text-muted leading-tight">Mostrando {{ filteredOpportunities.length }} de {{ opps.approved.length }}</p>
+        </div>
+
+        <!-- Mobile filter toggle -->
+        <button
+          @click="showFilterPanel = !showFilterPanel"
+          class="md:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-base text-text-muted text-sm hover:text-text-primary transition-colors"
+          :class="showFilterPanel ? 'bg-bg-surface-2' : ''"
+        >
+          Filtros{{ hasActiveFilters ? ' ·' : '' }}
+        </button>
 
         <!-- Search -->
-        <div class="flex-1 relative max-w-xs">
+        <div class="flex-1 relative min-w-32 max-w-xs">
           <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
           <input
             v-model="searchQuery"
@@ -243,13 +316,22 @@ async function handleFormSubmit(data) {
           />
         </div>
 
+        <!-- Active tag pill -->
+        <div
+          v-if="tagFilter"
+          class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-accent/10 text-accent border border-accent/30"
+        >
+          # {{ tagFilter }}
+          <button @click="tagFilter = ''" class="hover:text-danger leading-none">×</button>
+        </div>
+
         <!-- Pending link (member) -->
         <RouterLink
           v-if="auth.isMember && opps.pending.length > 0"
           to="/pending"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber/10 text-amber text-xs font-medium border border-amber/30 hover:bg-amber/20 transition-colors"
+          class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber/10 text-amber text-xs font-medium border border-amber/30 hover:bg-amber/20 transition-colors"
         >
-          {{ opps.pending.length }} pendiente{{ opps.pending.length !== 1 ? 's' : '' }} de aprobación
+          {{ opps.pending.length }} pendiente{{ opps.pending.length !== 1 ? 's' : '' }}
         </RouterLink>
 
         <!-- Add button -->
@@ -264,21 +346,57 @@ async function handleFormSubmit(data) {
 
       <!-- Cards list -->
       <div class="p-6">
-        <div v-if="opps.loading" class="flex items-center justify-center py-16">
-          <p class="text-text-muted text-sm">Cargando...</p>
+        <div v-if="opps.loading" class="grid gap-3 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+          <SkeletonCard v-for="n in 6" :key="n" />
         </div>
 
-        <div v-else-if="filteredOpportunities.length === 0" class="flex flex-col items-center justify-center py-16 gap-3">
-          <p class="text-text-muted">No se encontraron oportunidades</p>
-          <p class="text-text-muted text-sm">Prueba cambiando los filtros o la búsqueda</p>
+        <div v-else-if="filteredOpportunities.length === 0" class="flex flex-col items-center justify-center py-20 gap-3 text-center">
+          <template v-if="hasActiveFilters">
+            <p class="text-text-primary font-medium">Sin resultados para los filtros actuales</p>
+            <p class="text-text-muted text-sm">Intenta con otros términos o quitá algún filtro.</p>
+            <button
+              @click="clearFilters"
+              class="mt-1 px-4 py-2 rounded-lg border border-border-base text-text-muted text-sm hover:text-accent hover:border-accent transition-colors"
+            >
+              Limpiar filtros
+            </button>
+          </template>
+          <template v-else>
+            <p class="text-text-primary font-medium">No hay oportunidades aún</p>
+            <p class="text-text-muted text-sm">Agrega la primera usando el botón "+ Agregar".</p>
+          </template>
         </div>
 
+        <!-- Grouped by type (when "Todas" selected) -->
+        <template v-else-if="showGroups">
+          <template v-for="group in groupedOpportunities" :key="group.type">
+            <div v-if="group.items.length > 0" class="mb-8">
+              <div class="flex items-center gap-3 mb-3">
+                <h3 class="text-xs font-semibold text-text-muted uppercase tracking-wider shrink-0">{{ group.label }}</h3>
+                <div class="flex-1 h-px bg-border-base"></div>
+                <span class="text-xs text-text-muted shrink-0">{{ group.items.length }}</span>
+              </div>
+              <div class="grid gap-3 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+                <OpportunityCard
+                  v-for="opp in group.items"
+                  :key="opp.id"
+                  :opportunity="opp"
+                  @edit="openEdit"
+                  @filter-tag="handleFilterTag"
+                />
+              </div>
+            </div>
+          </template>
+        </template>
+
+        <!-- Flat list (when filtering by type or other filters) -->
         <div v-else class="grid gap-3 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           <OpportunityCard
             v-for="opp in filteredOpportunities"
             :key="opp.id"
             :opportunity="opp"
             @edit="openEdit"
+            @filter-tag="handleFilterTag"
           />
         </div>
       </div>

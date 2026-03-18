@@ -9,7 +9,7 @@ export const useUIStore = defineStore('ui', () => {
   }
 
   const theme = ref(getInitialTheme())
-  const sidebarOpen = ref(true)
+  const sidebarOpen = ref(window.innerWidth >= 768)
 
   function applyTheme(val) {
     if (val === 'dark') {

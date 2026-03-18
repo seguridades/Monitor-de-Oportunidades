@@ -17,46 +17,10 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { useAuthStore } from '@/stores/auth'
-import { createAuthUser } from '@/firebase/auth'
-import { setDoc } from 'firebase/firestore'
+import AppConfirm from '@/components/ui/AppConfirm.vue'
 
 const auth = useAuthStore()
 const activeTab = ref('users')
-
-// ---- Add user directly ----
-const showAddUser = ref(false)
-const newUser = ref({ displayName: '', email: '', password: '', role: 'member', org: '' })
-const addingUser = ref(false)
-
-async function handleAddUser() {
-  if (!newUser.value.email.trim() || !newUser.value.password || !newUser.value.displayName.trim()) return
-  addingUser.value = true
-  try {
-    const uid = await createAuthUser(newUser.value.email.trim().toLowerCase(), newUser.value.password)
-    await setDoc(doc(db, 'users', uid), {
-      displayName: newUser.value.displayName.trim(),
-      email: newUser.value.email.trim().toLowerCase(),
-      org: newUser.value.org.trim() || null,
-      role: newUser.value.role,
-      active: true,
-      invitedBy: auth.user?.uid ?? null,
-      createdAt: serverTimestamp(),
-      lastSeen: serverTimestamp(),
-    })
-    toast.success(`Usuario "${newUser.value.displayName.trim()}" creado`)
-    newUser.value = { displayName: '', email: '', password: '', role: 'member', org: '' }
-    showAddUser.value = false
-    await loadUsers()
-  } catch (e) {
-    if (e.code === 'auth/email-already-in-use') {
-      toast.error('Ese email ya tiene una cuenta.')
-    } else {
-      toast.error(e.message || 'Error al crear usuario')
-    }
-  } finally {
-    addingUser.value = false
-  }
-}
 
 // ---- Users ----
 const users = ref([])
@@ -175,8 +139,15 @@ async function copyLink() {
   }
 }
 
-async function revokeInvitation(inv) {
-  if (!confirm(`¿Revocar invitación para ${inv.email}?`)) return
+const confirmRevokeTarget = ref(null)
+
+function revokeInvitation(inv) {
+  confirmRevokeTarget.value = inv
+}
+
+async function confirmRevoke() {
+  const inv = confirmRevokeTarget.value
+  confirmRevokeTarget.value = null
   try {
     await deleteDoc(doc(db, 'invitations', inv.id))
     invitations.value = invitations.value.filter(i => i.id !== inv.id)
@@ -230,7 +201,7 @@ function parseImport() {
   try {
     raw = JSON.parse(importJson.value)
   } catch {
-    importErrors.value = ['JSON inválido — revisa la sintaxis.']
+    importErrors.value = ['JSON inválido - revisa la sintaxis.']
     return
   }
 
@@ -586,7 +557,7 @@ onMounted(() => {
 
       <!-- Preview table -->
       <div v-if="importParsed.length" class="overflow-x-auto">
-        <p class="text-xs text-text-muted mb-2">Vista previa — {{ importParsed.length }} registros listos para importar</p>
+        <p class="text-xs text-text-muted mb-2">Vista previa - {{ importParsed.length }} registros listos para importar</p>
         <table class="w-full text-xs border border-border-base rounded-lg overflow-hidden">
           <thead class="bg-bg-surface-2">
             <tr class="text-left">
@@ -609,5 +580,13 @@ onMounted(() => {
         </table>
       </div>
     </div>
+    <AppConfirm
+      :open="!!confirmRevokeTarget"
+      title="Revocar invitación"
+      :message="confirmRevokeTarget ? `¿Revocar la invitación para ${confirmRevokeTarget.email}?` : ''"
+      confirm-label="Revocar"
+      @confirm="confirmRevoke"
+      @cancel="confirmRevokeTarget = null"
+    />
   </div>
 </template>

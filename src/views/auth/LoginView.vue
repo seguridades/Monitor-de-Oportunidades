@@ -93,7 +93,7 @@ async function handleEmailLogin() {
       </div>
 
       <p class="text-xs text-text-muted text-center">
-        Acceso restringido — solo usuarios invitados
+        Acceso restringido - solo usuarios invitados
       </p>
     </div>
   </div>

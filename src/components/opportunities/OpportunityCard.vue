@@ -8,12 +8,13 @@ import { useFollowsStore } from '@/stores/follows'
 import OpportunityStatusBadge from './OpportunityStatusBadge.vue'
 import OpportunityNotes from './OpportunityNotes.vue'
 import AppTag from '@/components/ui/AppTag.vue'
+import AppConfirm from '@/components/ui/AppConfirm.vue'
 
 const props = defineProps({
   opportunity: { type: Object, required: true },
   showFollowPanel: { type: Boolean, default: false },
 })
-const emit = defineEmits(['edit'])
+const emit = defineEmits(['edit', 'filter-tag'])
 
 const auth = useAuthStore()
 const opps = useOpportunitiesStore()
@@ -22,6 +23,20 @@ const follows = useFollowsStore()
 const showMenu = ref(false)
 const showNotes = ref(false)
 const showStatusPicker = ref(false)
+const showDeleteConfirm = ref(false)
+const menuPos = ref({ top: 0, right: 0 })
+const menuBtnRef = ref(null)
+
+function openMenu() {
+  if (menuBtnRef.value) {
+    const rect = menuBtnRef.value.getBoundingClientRect()
+    menuPos.value = {
+      top: rect.bottom + 4,
+      right: window.innerWidth - rect.right,
+    }
+  }
+  showMenu.value = true
+}
 
 const following = computed(() => follows.isFollowing(props.opportunity.id))
 const followData = computed(() => follows.getFollow(props.opportunity.id))
@@ -112,11 +127,15 @@ async function handleChangeStatus(status) {
   showMenu.value = false
 }
 
-async function handleDelete() {
-  if (!confirm(`¿Eliminar "${props.opportunity.title}"? Esta acción no se puede deshacer.`)) return
+function handleDelete() {
+  showDeleteConfirm.value = true
+  showMenu.value = false
+}
+
+async function confirmDelete() {
+  showDeleteConfirm.value = false
   await opps.deleteOpportunity(props.opportunity.id)
   toast.success('Oportunidad eliminada')
-  showMenu.value = false
 }
 
 function handleEdit() {
@@ -191,64 +210,58 @@ const statusOptions = [
         <OpportunityStatusBadge :status="opportunity.status" />
 
         <!-- Menu button (member/admin) -->
-        <div v-if="auth.isMember" class="relative">
+        <div v-if="auth.isMember">
           <button
-            @click="showMenu = !showMenu"
+            ref="menuBtnRef"
+            @click="openMenu"
             class="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-surface-2 transition-colors"
           >
             <MoreVertical class="w-4 h-4" />
           </button>
 
-          <!-- Dropdown -->
-          <div
-            v-if="showMenu"
-            class="absolute right-0 top-6 z-20 w-44 bg-bg-surface border border-border-base rounded-lg shadow-lg py-1"
-          >
-            <!-- Change status -->
-            <div class="px-3 py-1.5 text-xs text-text-muted font-medium">Cambiar estado</div>
-            <button
-              v-for="opt in statusOptions"
-              :key="opt.value"
-              @click="handleChangeStatus(opt.value)"
-              class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
-            >
-              {{ opt.label }}
-            </button>
-            <div class="h-px bg-border-base my-1" />
+          <Teleport to="body">
+            <template v-if="showMenu">
+              <!-- Overlay to close -->
+              <div class="fixed inset-0 z-40" @click="showMenu = false" />
 
-            <!-- Toggle featured -->
-            <button
-              @click="handleToggleFeatured"
-              class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors flex items-center gap-2"
-            >
-              <Star class="w-3.5 h-3.5" />
-              {{ opportunity.featured ? 'Quitar destacado' : 'Destacar' }}
-            </button>
-
-            <!-- Edit -->
-            <button
-              @click="handleEdit"
-              class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
-            >
-              Editar
-            </button>
-
-            <!-- Delete (admin only) -->
-            <button
-              v-if="auth.isAdmin"
-              @click="handleDelete"
-              class="w-full text-left px-3 py-1.5 text-xs text-danger hover:bg-danger/10 transition-colors"
-            >
-              Eliminar
-            </button>
-          </div>
-
-          <!-- Overlay to close menu -->
-          <div
-            v-if="showMenu"
-            class="fixed inset-0 z-10"
-            @click="showMenu = false"
-          />
+              <!-- Dropdown -->
+              <div
+                class="fixed z-50 w-44 bg-bg-surface border border-border-base rounded-lg shadow-lg py-1"
+                :style="{ top: menuPos.top + 'px', right: menuPos.right + 'px' }"
+              >
+                <div class="px-3 py-1.5 text-xs text-text-muted font-medium">Cambiar estado</div>
+                <button
+                  v-for="opt in statusOptions"
+                  :key="opt.value"
+                  @click="handleChangeStatus(opt.value)"
+                  class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
+                >
+                  {{ opt.label }}
+                </button>
+                <div class="h-px bg-border-base my-1" />
+                <button
+                  @click="handleToggleFeatured"
+                  class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors flex items-center gap-2"
+                >
+                  <Star class="w-3.5 h-3.5" />
+                  {{ opportunity.featured ? 'Quitar destacado' : 'Destacar' }}
+                </button>
+                <button
+                  @click="handleEdit"
+                  class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
+                >
+                  Editar
+                </button>
+                <button
+                  v-if="auth.isAdmin"
+                  @click="handleDelete"
+                  class="w-full text-left px-3 py-1.5 text-xs text-danger hover:bg-danger/10 transition-colors"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </template>
+          </Teleport>
         </div>
       </div>
 
@@ -306,7 +319,7 @@ const statusOptions = [
 
       <!-- Tags -->
       <div v-if="opportunity.tags?.length" class="flex flex-wrap gap-1 mb-3">
-        <AppTag v-for="tag in opportunity.tags" :key="tag" :label="tag" />
+        <AppTag v-for="tag in opportunity.tags" :key="tag" :label="tag" clickable @click="emit('filter-tag', tag)" />
       </div>
 
       <!-- Footer: actions -->
@@ -329,10 +342,17 @@ const statusOptions = [
         <button
           v-if="auth.isMember"
           @click="showNotes = !showNotes"
-          class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-border-base text-text-muted hover:text-text-primary hover:border-accent transition-colors"
+          class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border transition-colors"
+          :class="opportunity.notesCount > 0
+            ? 'border-accent/40 text-accent bg-accent/5 hover:bg-accent/10'
+            : 'border-border-base text-text-muted hover:text-text-primary hover:border-accent'"
         >
           <FileText class="w-3.5 h-3.5" />
           Notas
+          <span
+            v-if="opportunity.notesCount > 0"
+            class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-accent text-bg-base text-[10px] font-medium leading-none"
+          >{{ opportunity.notesCount }}</span>
         </button>
 
         <!-- Follow/Unfollow -->
@@ -349,6 +369,15 @@ const statusOptions = [
         </button>
       </div>
     </div>
+
+    <AppConfirm
+      :open="showDeleteConfirm"
+      title="Eliminar oportunidad"
+      :message="`¿Eliminar &quot;${opportunity.title}&quot;? Esta acción no se puede deshacer.`"
+      confirm-label="Eliminar"
+      @confirm="confirmDelete"
+      @cancel="showDeleteConfirm = false"
+    />
 
     <!-- Notes section (collapsible) -->
     <div v-if="showNotes && auth.isMember" class="border-t border-border-base">
@@ -381,7 +410,9 @@ const statusOptions = [
         </button>
       </div>
       <div>
-        <label class="block text-xs text-text-muted mb-1">Nota personal</label>
+        <label class="block text-xs mb-1"
+          :class="followData.personalNote ? 'text-accent' : 'text-text-muted'"
+        >Nota personal{{ followData.personalNote ? ' ·' : '' }}</label>
         <textarea
           :value="followData.personalNote || ''"
           @blur="handleNoteUpdate"

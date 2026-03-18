@@ -6,6 +6,8 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
+  increment,
   query,
   orderBy,
   onSnapshot,
@@ -55,6 +57,7 @@ async function addNote() {
       authorName: auth.userProfile?.displayName ?? 'Anónimo',
       createdAt: serverTimestamp(),
     })
+    await updateDoc(doc(db, 'opportunities', props.opportunityId), { notesCount: increment(1) })
     newNote.value = ''
   } catch {
     toast.error('Error al agregar nota')
@@ -66,6 +69,7 @@ async function addNote() {
 async function deleteNote(noteId) {
   try {
     await deleteDoc(doc(db, 'opportunities', props.opportunityId, 'notes', noteId))
+    await updateDoc(doc(db, 'opportunities', props.opportunityId), { notesCount: increment(-1) })
   } catch {
     toast.error('Error al eliminar nota')
   }
