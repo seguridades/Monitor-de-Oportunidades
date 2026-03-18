@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg-base: #f8f8f6;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #f1f0eb;
+  --border-base: #e0dfd8;
+  --text-primary: #1a1a1a;
+  --text-muted: #666666;
+  --accent: #11C1E1;
+  --amber-c: #c47d00;
+  --danger-c: #c0392b;
+  --blue-c: #2563eb;
+}
+
+.dark {
+  --bg-base: #0f0f0f;
+  --bg-surface: #181818;
+  --bg-surface-2: #222222;
+  --border-base: #2a2a2a;
+  --text-primary: #e8e6e0;
+  --text-muted: #888888;
+  --accent: #11C1E1;
+  --amber-c: #f0a030;
+  --danger-c: #e05555;
+  --blue-c: #4a9eff;
+}
+
+@theme {
+  --color-brand-cyan: #11C1E1;
+  --color-brand-magenta: #D15892;
+}
+
+@theme inline {
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-surface-2: var(--bg-surface-2);
+  --color-border-base: var(--border-base);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-amber: var(--amber-c);
+  --color-danger: var(--danger-c);
+  --color-blue: var(--blue-c);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+#app { min-height: 100vh; }

@@ -1,0 +1,95 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isActiveUser() {
+      let userData = getUserData();
+      return isAuthenticated() && userData != null && userData.active != false;
+    }
+
+    function isAdmin() {
+      return isActiveUser() && getUserData().role == 'admin';
+    }
+
+    function isMember() {
+      let role = getUserData().role;
+      return isActiveUser() && (role == 'admin' || role == 'member');
+    }
+
+    function isGuest() {
+      return isActiveUser() && getUserData().role == 'guest';
+    }
+
+    // ---- opportunities ----
+    match /opportunities/{opportunityId} {
+      allow read: if isActiveUser();
+
+      allow create: if isActiveUser() && (
+        isMember() ||
+        (isGuest() && request.resource.data.status == 'pendiente_aprobacion')
+      );
+
+      allow update: if isActiveUser() && (
+        isMember() ||
+        (isGuest() &&
+          resource.data.addedBy == request.auth.uid &&
+          resource.data.status == 'pendiente_aprobacion')
+      );
+
+      allow delete: if isAdmin();
+
+      // notes subcollection
+      match /notes/{noteId} {
+        allow read, write: if isMember();
+      }
+    }
+
+    // ---- users ----
+    match /users/{userId} {
+      // Any authenticated user can read their own document
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+
+      // Admins can read all users
+      allow read: if isAdmin();
+
+      // Allow create during onboarding (invite flow) — authenticated user creating their own doc
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+
+      // Admin can update role/active; user can update own lastSeen
+      allow update: if isAdmin() ||
+        (isAuthenticated() && request.auth.uid == userId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen']));
+    }
+
+    // ---- user_follows ----
+    match /user_follows/{followId} {
+      // Users can read/write their own follows
+      allow read, write: if isAuthenticated() &&
+        request.auth.uid == resource.data.userId;
+
+      allow create: if isAuthenticated() &&
+        request.auth.uid == request.resource.data.userId;
+
+      // Members/admins can read shared notes
+      allow read: if isMember() && resource.data.noteShared == true;
+    }
+
+    // ---- invitations ----
+    match /invitations/{invitationId} {
+      allow create: if isAdmin();
+      allow read: if true; // token is a secret UUID; must be readable before auth exists
+      allow update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+  }
+}
