@@ -1,89 +1,133 @@
 # Monitor de Oportunidades — seguridades.org
 
-App privada para centralizar y trackear convocatorias de financiamiento, grants, capacitaciones y fuentes de consultoría relevantes para trabajo de seguridad digital con sociedad civil en América Latina.
+Plataforma web para centralizar y rastrear convocatorias de financiamiento, grants, capacitaciones, fuentes y redes relevantes para el trabajo de seguridad digital con sociedad civil en América Latina.
 
-## Stack
+Desarrollado por [seguridades.org](https://seguridades.org).
 
-- **Vue 3** + Vite
-- **Tailwind CSS v4**
-- **Firebase** (Firestore + Auth + Storage + Hosting)
-- **Pinia** (estado global)
-- **Vue Router 4**
-- **Lucide Vue** (íconos)
-- **vue-sonner** (notificaciones)
+---
 
-## Requisitos
+## ¿Qué es esto?
 
-- **Node.js** 22.12+ o 25+ (Vite 8 requiere esto). Usa `nvm use` si tienes `.nvmrc`.
+Una app privada (por ahora, por invitación) donde el equipo de seguridades.org y organizaciones aliadas pueden:
 
-## Setup
+- Explorar un catálogo curado de oportunidades agrupadas por tipo
+- Proponer nuevas oportunidades para revisión del equipo
+- Llevar seguimiento personal en **Mi Lista**: estado, notas privadas, destacados y exportación a CSV
+- Recibir notificaciones cuando sus propuestas son aprobadas o rechazadas
 
-### 1. Instalar dependencias
+---
+
+## Stack técnico
+
+- **Frontend**: Vue.js 3 (Composition API + `<script setup>`) + Vite
+- **Estilos**: Tailwind CSS v4
+- **Backend / Auth / DB**: Firebase (Firestore + Auth + Hosting)
+- **Estado global**: Pinia
+- **Router**: Vue Router 4
+- **Íconos**: lucide-vue-next
+- **Toasts**: vue-sonner
+
+> Usamos Firebase por razones de costo y mantenimiento. Este no es un proyecto con financiamiento dedicado. Somos fans de tecnologías descentralizadas y aspiramos a migrar a infraestructura más soberana si el proyecto crece.
+
+---
+
+## Roles
+
+| Rol | Permisos |
+|-----|----------|
+| `admin` | Todo: contenido, usuarios, importación en lote |
+| `moderador` | Aprobar, agregar, editar y eliminar oportunidades |
+| `invitado` | Ver catálogo, proponer oportunidades, Mi Lista personal |
+
+---
+
+## Instalación local
+
+**Requisitos**: Node.js 22.12+ o 25+. Si usas `nvm`, el proyecto incluye `.nvmrc`.
 
 ```bash
+# Clonar el repositorio
+git clone https://github.com/seguridades/Monitor-de-Oportunidades.git
+cd Monitor-de-Oportunidades
+
+# Activar versión de Node (si usas nvm)
+nvm use
+
+# Instalar dependencias
 npm install
-```
 
-### 2. Configurar variables de entorno
-
-```bash
+# Configurar variables de entorno
 cp .env.example .env
-```
+# Editar .env con tus credenciales de Firebase
 
-Edita `.env` con las credenciales de tu proyecto Firebase (Firebase Console → Project Settings → Your apps → SDK setup and configuration).
-
-### 3. Correr en desarrollo
-
-```bash
-nvm use   # activa Node 25 desde .nvmrc
+# Desarrollo
 npm run dev
-```
 
-### 4. Build para producción
-
-```bash
+# Build para producción
 npm run build
+
+# Deploy a Firebase Hosting
+npm run build && firebase deploy
 ```
 
-### 5. Deploy a Firebase Hosting
+### Variables de entorno
 
-```bash
-npm run build
-firebase deploy
-```
-
-## Variables de entorno requeridas
+Encuéntralas en Firebase Console → Project Settings → Your apps → SDK setup.
 
 | Variable | Descripción |
 |----------|-------------|
-| `VITE_FIREBASE_API_KEY` | API Key de Firebase |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Auth domain (ej: `tu-proyecto.firebaseapp.com`) |
-| `VITE_FIREBASE_PROJECT_ID` | ID del proyecto Firebase |
+| `VITE_FIREBASE_API_KEY` | API Key |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Auth domain |
+| `VITE_FIREBASE_PROJECT_ID` | ID del proyecto |
 | `VITE_FIREBASE_STORAGE_BUCKET` | Storage bucket |
 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | Messaging sender ID |
 | `VITE_FIREBASE_APP_ID` | App ID |
+
+---
 
 ## Estructura del proyecto
 
 ```
 src/
-├── assets/           # logo.svg y otros assets estáticos
+├── assets/
 ├── components/
-│   ├── ui/           # Componentes base reutilizables
-│   ├── opportunities/ # Componentes de oportunidades
-│   └── layout/       # AppShell, AppSidebar, AppHeader
-├── views/            # Vistas por ruta
-├── stores/           # Pinia stores (auth, opportunities, follows, ui)
-├── composables/      # Lógica reutilizable
-├── firebase/         # Config e helpers de Firebase
-└── router/           # Vue Router con guards de rol
+│   ├── ui/                # Componentes base (AppModal, AppTag, AppConfirm…)
+│   ├── opportunities/     # OpportunityCard, OpportunityForm, OpportunityStatusBadge
+│   ├── layout/            # AppShell, AppSidebar, AppHeader
+│   └── onboarding/        # WelcomeModal
+├── views/
+│   ├── auth/              # LoginView, AcceptInviteView
+│   ├── OpportunitiesView  # Listado principal con filtros y agrupación por tipo
+│   ├── MyListView         # Seguimiento personal
+│   ├── PendingView        # Aprobación de propuestas (moderador/admin)
+│   ├── AdminView          # Usuarios, invitaciones, importación en lote
+│   ├── GuideView          # Guía de uso
+│   └── AboutView          # Información, privacidad, tecnología
+├── stores/                # auth, opportunities, follows, notifications, ui
+├── firebase/              # config.js, auth.js
+└── router/                # Guards de autenticación y rol
 ```
 
-## Roles
+---
 
-| Rol | Descripción |
-|-----|-------------|
-| `admin` | Equipo core de seguridades.org. Control total. |
-| `member` | Equipo interno con permisos completos sobre convocatorias. |
-| `guest` | Usuario externo invitado. |
-# Monitor-de-Oportunidades
+## Importar oportunidades en lote
+
+El panel de administración permite importar oportunidades desde JSON. Ver [`oportunidades-ejemplo.json`](./oportunidades-ejemplo.json) como referencia de formato.
+
+---
+
+## Privacidad
+
+Los datos se guardan en texto plano en Firestore (Google). Los datos personales de seguimiento (notas, estado, destacados en Mi Lista) son accesibles para quien tenga acceso directo a la base de datos. Ningún dato se comparte con terceros ni se usa con fines comerciales.
+
+---
+
+## Contacto y feedback
+
+Para solicitudes, comentarios o reportar un problema: **info@seguridades.org**
+
+---
+
+## Licencia
+
+Código abierto. Puedes revisarlo, adaptarlo o contribuir desde este repositorio.

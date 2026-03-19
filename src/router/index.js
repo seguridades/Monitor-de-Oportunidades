@@ -46,6 +46,11 @@ const routes = [
         name: 'Guide',
         component: () => import('@/views/GuideView.vue'),
       },
+      {
+        path: 'about',
+        name: 'About',
+        component: () => import('@/views/AboutView.vue'),
+      },
     ],
   },
   {

@@ -133,7 +133,7 @@ const roleLabelMap = {
         Administración
       </RouterLink>
 
-      <div class="mt-3 border-t border-border-base pt-3">
+      <div class="mt-3 border-t border-border-base pt-3 space-y-0.5">
         <RouterLink
           to="/guide"
           class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
@@ -142,6 +142,15 @@ const roleLabelMap = {
             : 'text-text-muted hover:text-text-primary hover:bg-bg-surface-2'"
         >
           Guía de uso
+        </RouterLink>
+        <RouterLink
+          to="/about"
+          class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+          :class="$route.name === 'About'
+            ? 'bg-bg-surface-2 text-text-primary font-medium'
+            : 'text-text-muted hover:text-text-primary hover:bg-bg-surface-2'"
+        >
+          Acerca del proyecto
         </RouterLink>
       </div>
     </nav>

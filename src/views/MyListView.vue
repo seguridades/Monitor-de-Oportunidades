@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { Search } from 'lucide-vue-next'
+import { Search, Download } from 'lucide-vue-next'
 import { useOpportunitiesStore } from '@/stores/opportunities'
 import { useFollowsStore } from '@/stores/follows'
 import OpportunityCard from '@/components/opportunities/OpportunityCard.vue'
@@ -95,6 +95,52 @@ const groupedOpportunities = computed(() =>
     items: followedOpportunities.value.filter(o => o.type === type),
   })).filter(g => g.items.length > 0)
 )
+
+const typeLabel = {
+  fuente: 'Fuente',
+  convocatoria: 'Convocatoria',
+  grant: 'Grant',
+  capacitacion: 'Capacitación',
+  red: 'Red',
+}
+
+function exportCSV() {
+  const headers = ['Título', 'Tipo', 'Estado', 'Destacada', 'URL', 'Descripción', 'Tags', 'Fecha límite', 'Monto', 'Notas']
+
+  const rows = followedOpportunities.value.map(opp => {
+    const follow = follows.getFollow(opp.id)
+    const rawDate = opp.deadline || opp.fecha
+    const dateStr = rawDate
+      ? (rawDate?.toDate ? rawDate.toDate() : new Date(rawDate)).toLocaleDateString('es-ES')
+      : ''
+    const notesStr = (follow?.notes ?? [])
+      .map(n => `[${new Date(n.createdAt).toLocaleDateString('es-ES')}] ${n.text}`)
+      .join(' | ')
+
+    return [
+      opp.title ?? '',
+      typeLabel[opp.type] ?? opp.type,
+      follow?.personalStatus ?? '',
+      follow?.starred ? 'Sí' : 'No',
+      opp.url ?? '',
+      opp.description ?? '',
+      (opp.tags ?? []).join(', '),
+      dateStr,
+      opp.monto ?? '',
+      notesStr,
+    ]
+  })
+
+  const escape = v => `"${String(v).replace(/"/g, '""')}"`
+  const csv = [headers, ...rows].map(row => row.map(escape).join(',')).join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `mi-lista-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -117,6 +163,15 @@ const groupedOpportunities = computed(() =>
           />
         </div>
         <button v-if="hasFilters" @click="clearFilters" class="text-xs text-accent hover:underline shrink-0">× Limpiar</button>
+        <button
+          v-if="followedOpportunities.length > 0"
+          @click="exportCSV"
+          class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border-base text-xs text-text-muted hover:text-accent hover:border-accent transition-colors"
+          title="Exportar lista a CSV"
+        >
+          <Download class="w-3.5 h-3.5" />
+          CSV
+        </button>
       </div>
 
       <!-- Row 2: filters -->
