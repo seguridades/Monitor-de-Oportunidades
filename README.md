@@ -1,6 +1,6 @@
 # Monitor de Oportunidades — seguridades.org
 
-Plataforma web para centralizar y rastrear convocatorias de financiamiento, grants, capacitaciones, fuentes y redes relevantes para el trabajo de seguridad digital con sociedad civil en América Latina.
+Plataforma web para centralizar y rastrear convocatorias de financiamiento, grants, capacitaciones, fuentes y redes relevantes para el trabajo de seguridad integral con sociedad civil en América Latina.
 
 Desarrollado por [seguridades.org](https://seguridades.org).
 

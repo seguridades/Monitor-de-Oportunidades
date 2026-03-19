@@ -74,7 +74,7 @@
       <h2 class="text-sm font-semibold text-text-primary uppercase tracking-wide">Acceso a la plataforma</h2>
       <div class="bg-bg-surface border border-border-base rounded-xl p-4">
         <p class="text-sm text-text-muted leading-relaxed">
-          Por ahora el Monitor de Oportunidades es un proyecto cerrado, accesible solo mediante invitación. Queremos que en el futuro pueda ser más abierto y servir a toda la comunidad de seguridad digital en América Latina — ya sea como plataforma pública o como herramienta que otras organizaciones puedan instalar y operar de forma independiente.
+          Por ahora el Monitor de Oportunidades es un proyecto cerrado, accesible solo mediante invitación. Queremos que en el futuro pueda ser más abierto y servir a toda la comunidad de seguridad integral en América Latina — ya sea como plataforma pública o como herramienta que otras organizaciones puedan instalar y operar de forma independiente.
         </p>
       </div>
     </section>

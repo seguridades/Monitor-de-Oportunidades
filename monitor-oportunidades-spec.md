@@ -7,7 +7,7 @@
 
 ## Visión general
 
-Web app privada para el equipo de seguridades.org y organizaciones aliadas invitadas. Centraliza convocatorias de financiamiento, grants, fuentes, capacitaciones y redes relevantes para el trabajo de seguridad digital con sociedad civil en América Latina. Acceso por invitación, con roles diferenciados.
+Web app privada para el equipo de seguridades.org y organizaciones aliadas invitadas. Centraliza convocatorias de financiamiento, grants, fuentes, capacitaciones y redes relevantes para el trabajo de seguridad integral con sociedad civil en América Latina. Acceso por invitación, con roles diferenciados.
 
 ---
 

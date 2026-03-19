@@ -17,7 +17,7 @@ const steps = computed(() => {
     {
       icon: Compass,
       title: `Bienvenido/a, ${firstName}`,
-      body: 'Este es el Monitor de Oportunidades — un espacio centralizado para rastrear convocatorias, grants, capacitaciones, fuentes y redes relevantes para el trabajo de seguridad digital en América Latina.',
+      body: 'Este es el Monitor de Oportunidades — un espacio centralizado para rastrear convocatorias, grants, capacitaciones, fuentes y redes relevantes para el trabajo de seguridad integral en América Latina.',
       sub: 'En unos pasos te mostramos cómo funciona.',
     },
     {

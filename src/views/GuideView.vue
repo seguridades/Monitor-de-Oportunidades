@@ -31,7 +31,7 @@ const permMatrix = [
         <h1 class="text-xl font-semibold text-text-primary">Guía de uso</h1>
         <p class="text-text-muted text-sm mt-1">
           Monitor de Oportunidades centraliza convocatorias, grants, fuentes de financiamiento,
-          capacitaciones y redes relevantes para el trabajo de seguridad digital en América Latina.
+          capacitaciones y redes relevantes para el trabajo de seguridad integral en América Latina.
         </p>
       </div>
       <button
