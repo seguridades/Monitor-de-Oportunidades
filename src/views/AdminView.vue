@@ -7,7 +7,7 @@ import {
   collection,
   query,
   getDocs,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -69,7 +69,7 @@ function formatDate(ts) {
 
 // ---- Invitations ----
 const inviteEmail = ref('')
-const inviteRole = ref('member')
+const inviteRole = ref('invitado')
 const inviteSubmitting = ref(false)
 const generatedLink = ref('')
 const copiedLink = ref(false)
@@ -107,7 +107,7 @@ async function generateInvitation() {
     const token = crypto.randomUUID()
     const expiresAt = Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
 
-    await addDoc(collection(db, 'invitations'), {
+    await setDoc(doc(db, 'invitations', token), {
       email: inviteEmail.value.trim().toLowerCase(),
       role: inviteRole.value,
       invitedBy: auth.user.uid,
@@ -159,7 +159,6 @@ async function confirmRevoke() {
 
 // ---- Bulk Import ----
 const VALID_TYPES = ['fuente', 'convocatoria', 'grant', 'capacitacion', 'red']
-const VALID_FIT = ['Alto', 'Bueno', 'Selectivo']
 
 const importJson = ref('')
 const importParsed = ref([])
@@ -173,20 +172,18 @@ const IMPORT_EXAMPLE = JSON.stringify([
     type: "grant",
     description: "Apoya proyectos de libertad en internet.",
     url: "https://www.opentech.fund/funds/internet-freedom-fund/",
-    fit: "Alto",
     tags: ["grant", "seguridad digital"],
     monto: "USD 10k–900k",
     quien_puede_aplicar: "Individuos y organizaciones",
-    deadline: "2025-03-31"
+    deadline: "2026-09-30"
   },
   {
     title: "Freedom of the Press Foundation – Security Training",
     type: "capacitacion",
     description: "Capacitaciones en seguridad digital para periodistas.",
     url: "https://freedom.press/training/",
-    fit: "Bueno",
     tags: ["capacitación", "periodismo"],
-    fecha: "2025-06-15",
+    fecha: "2026-06-15",
     modalidad: "virtual",
     dirigido_a: "Periodistas y activistas"
   }
@@ -199,9 +196,9 @@ function parseImport() {
 
   let raw
   try {
-    raw = JSON.parse(importJson.value)
-  } catch {
-    importErrors.value = ['JSON inválido - revisa la sintaxis.']
+    raw = JSON.parse(importJson.value.trim().replace(/[\x00-\x1F]/g, ' '))
+  } catch (e) {
+    importErrors.value = ['JSON inválido: ' + e.message]
     return
   }
 
@@ -218,8 +215,6 @@ function parseImport() {
     if (!item.title?.trim()) { errors.push(`#${n}: "title" es obligatorio`); return }
     if (!VALID_TYPES.includes(item.type)) { errors.push(`#${n}: "type" debe ser uno de: ${VALID_TYPES.join(', ')}`); return }
 
-    const fit = item.fit || 'Bueno'
-    if (!VALID_FIT.includes(fit)) { errors.push(`#${n}: "fit" debe ser Alto, Bueno o Selectivo`); return }
 
     const tags = Array.isArray(item.tags)
       ? item.tags.map(t => String(t).trim()).filter(Boolean)
@@ -230,9 +225,7 @@ function parseImport() {
       type: item.type,
       description: (item.description || '').trim(),
       url: (item.url || '').trim(),
-      fit,
       tags,
-      featured: !!item.featured,
     }
 
     if (item.type === 'fuente') {
@@ -278,6 +271,8 @@ async function runImport() {
       const ref = doc(col)
       batch.set(ref, {
         ...entry,
+        scope: 'global',
+        orgId: null,
         addedBy: auth.user?.uid ?? null,
         addedByOrg: auth.userProfile?.org ?? null,
         status: 'nueva',
@@ -309,7 +304,7 @@ onMounted(() => {
   <div class="p-6 max-w-5xl">
     <div class="mb-6">
       <h1 class="text-xl font-semibold text-text-primary">Panel de administración</h1>
-      <p class="text-text-muted text-sm mt-0.5">Gestión de usuarios e invitaciones</p>
+      <p class="text-text-muted text-sm mt-0.5">Gestión de organizaciones, usuarios e invitaciones</p>
     </div>
 
     <!-- Tabs -->
@@ -355,7 +350,6 @@ onMounted(() => {
             <tr class="border-b border-border-base text-left">
               <th class="pb-2 pr-4 text-xs font-medium text-text-muted">Nombre</th>
               <th class="pb-2 pr-4 text-xs font-medium text-text-muted">Email</th>
-              <th class="pb-2 pr-4 text-xs font-medium text-text-muted">Org</th>
               <th class="pb-2 pr-4 text-xs font-medium text-text-muted">Rol</th>
               <th class="pb-2 pr-4 text-xs font-medium text-text-muted">Último acceso</th>
               <th class="pb-2 text-xs font-medium text-text-muted">Activo</th>
@@ -368,7 +362,6 @@ onMounted(() => {
                 <span v-if="user.id === auth.user?.uid" class="ml-1 text-xs text-accent">(tú)</span>
               </td>
               <td class="py-2.5 pr-4 text-text-muted text-xs">{{ user.email || '—' }}</td>
-              <td class="py-2.5 pr-4 text-text-muted text-xs">{{ user.org || '—' }}</td>
               <td class="py-2.5 pr-4">
                 <select
                   :value="user.role"
@@ -377,8 +370,8 @@ onMounted(() => {
                   class="px-2 py-1 rounded border border-border-base bg-bg-base text-text-primary text-xs focus:outline-none focus:border-accent disabled:opacity-50"
                 >
                   <option value="admin">Admin</option>
-                  <option value="member">Miembro</option>
-                  <option value="guest">Invitado</option>
+                  <option value="moderador">Moderador</option>
+                  <option value="invitado">Invitado</option>
                 </select>
               </td>
               <td class="py-2.5 pr-4 text-text-muted text-xs">{{ formatDate(user.lastSeen) }}</td>
@@ -402,8 +395,8 @@ onMounted(() => {
 
     <!-- Invitations tab -->
     <div v-if="activeTab === 'invitations'" class="space-y-6">
-      <!-- Generate form -->
-      <div class="bg-bg-surface border border-border-base rounded-xl p-4">
+      <!-- Admin generate form -->
+      <div v-if="auth.isAdmin" class="bg-bg-surface border border-border-base rounded-xl p-4">
         <h3 class="text-sm font-semibold text-text-primary mb-3">Generar invitación</h3>
         <form @submit.prevent="generateInvitation" class="flex items-end gap-3 flex-wrap">
           <div class="flex-1 min-w-48">
@@ -422,8 +415,8 @@ onMounted(() => {
               v-model="inviteRole"
               class="px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm focus:outline-none focus:border-accent"
             >
-              <option value="member">Miembro</option>
-              <option value="guest">Invitado</option>
+              <option value="moderador">Moderador</option>
+              <option value="invitado">Invitado</option>
             </select>
           </div>
           <button
@@ -505,7 +498,7 @@ onMounted(() => {
         <!-- Fields reference -->
         <div class="p-3 bg-bg-surface-2 rounded-lg border border-border-base text-xs text-text-muted space-y-1">
           <p class="font-medium text-text-primary mb-1.5">Campos disponibles</p>
-          <p><span class="text-text-primary font-medium">Comunes:</span> title* · type* (fuente|convocatoria|grant|capacitacion|red) · description · url · fit/relevancia (Alto|Bueno|Selectivo) · tags (array o string separado por coma) · featured</p>
+          <p><span class="text-text-primary font-medium">Comunes:</span> title* · type* (fuente|convocatoria|grant|capacitacion|red) · description · url · tags (array o string separado por coma)</p>
           <p><span class="text-text-primary font-medium">fuente:</span> freq (semanal|mensual)</p>
           <p><span class="text-text-primary font-medium">convocatoria:</span> deadline (YYYY-MM-DD) · reminderDays · monto</p>
           <p><span class="text-text-primary font-medium">grant:</span> deadline · monto · quien_puede_aplicar</p>
@@ -564,7 +557,6 @@ onMounted(() => {
               <th class="px-3 py-2 text-text-muted font-medium">#</th>
               <th class="px-3 py-2 text-text-muted font-medium">Título</th>
               <th class="px-3 py-2 text-text-muted font-medium">Tipo</th>
-              <th class="px-3 py-2 text-text-muted font-medium">Relevancia</th>
               <th class="px-3 py-2 text-text-muted font-medium">Tags</th>
             </tr>
           </thead>
@@ -573,7 +565,6 @@ onMounted(() => {
               <td class="px-3 py-2 text-text-muted">{{ i + 1 }}</td>
               <td class="px-3 py-2 text-text-primary font-medium max-w-xs truncate">{{ item.title }}</td>
               <td class="px-3 py-2 text-text-muted capitalize">{{ item.type }}</td>
-              <td class="px-3 py-2 text-text-muted">{{ item.fit }}</td>
               <td class="px-3 py-2 text-text-muted">{{ item.tags.join(', ') || '—' }}</td>
             </tr>
           </tbody>

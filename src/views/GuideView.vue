@@ -7,22 +7,19 @@ const auth = useAuthStore()
 const showWelcome = ref(false)
 
 function restartTutorial() {
-  localStorage.removeItem('onboarding_done')
+  localStorage.removeItem('monitor_oportunidades_onboarding')
   showWelcome.value = true
 }
 
 const permMatrix = [
-  { action: 'Ver oportunidades aprobadas',     guest: '✓', member: '✓', admin: '✓' },
-  { action: 'Seguir oportunidades (Mi Lista)', guest: '✓', member: '✓', admin: '✓' },
-  { action: 'Agregar notas personales',        guest: '✓', member: '✓', admin: '✓' },
-  { action: 'Proponer nueva oportunidad',      guest: 'Queda pendiente', member: 'Aprobada directamente', admin: '✓' },
-  { action: 'Editar oportunidades',            guest: 'Solo propias pendientes', member: '✓', admin: '✓' },
-  { action: 'Aprobar / rechazar pendientes',   guest: '—', member: '✓', admin: '✓' },
-  { action: 'Ver notas del equipo',            guest: '—', member: '✓', admin: '✓' },
-  { action: 'Eliminar oportunidades',          guest: '—', member: '—', admin: '✓' },
-  { action: 'Gestionar usuarios',              guest: '—', member: '—', admin: '✓' },
-  { action: 'Invitar / crear usuarios',        guest: '—', member: '—', admin: '✓' },
-  { action: 'Importar en lote',                guest: '—', member: '—', admin: '✓' },
+  { action: 'Ver listado global',                invitado: '✓',               moderador: '✓',                    admin: '✓' },
+  { action: 'Sugerir oportunidades',             invitado: 'Queda pendiente', moderador: 'Aprobada directamente', admin: 'Aprobada directamente' },
+  { action: 'Mi Lista (notas, estado, destacar)',invitado: '✓',               moderador: '✓',                    admin: '✓' },
+  { action: 'Aprobar / rechazar sugerencias',    invitado: '-',               moderador: '✓',                    admin: '✓' },
+  { action: 'Agregar / editar oportunidades',    invitado: '-',               moderador: '✓',                    admin: '✓' },
+  { action: 'Eliminar oportunidades',            invitado: '-',               moderador: '✓',                    admin: '✓' },
+  { action: 'Gestionar usuarios e invitaciones', invitado: '-',               moderador: '-',                    admin: '✓' },
+  { action: 'Importar en lote',                  invitado: '-',               moderador: '-',                    admin: '✓' },
 ]
 </script>
 
@@ -33,9 +30,9 @@ const permMatrix = [
       <div>
         <h1 class="text-xl font-semibold text-text-primary">Guía de uso</h1>
         <p class="text-text-muted text-sm mt-1">
-        Monitor de Oportunidades centraliza convocatorias, grants, fuentes de financiamiento,
-        capacitaciones y redes relevantes para el trabajo de seguridad digital en América Latina.
-      </p>
+          Monitor de Oportunidades centraliza convocatorias, grants, fuentes de financiamiento,
+          capacitaciones y redes relevantes para el trabajo de seguridad digital en América Latina.
+        </p>
       </div>
       <button
         @click="restartTutorial"
@@ -54,30 +51,26 @@ const permMatrix = [
         <div class="bg-bg-surface border border-border-base rounded-xl p-4">
           <p class="text-sm font-medium text-text-primary mb-1">Todas las oportunidades</p>
           <p class="text-sm text-text-muted">
-            Vista principal. Muestra todas las oportunidades aprobadas. Puedes filtrar por tipo,
-            estado, relevancia o buscar por texto. Las tarjetas destacadas y con mayor relevancia aparecen primero.
+            Vista principal. Muestra todas las oportunidades aprobadas agrupadas por tipo.
+            Filtra por tipo o estado, busca por texto o etiqueta.
           </p>
         </div>
         <div class="bg-bg-surface border border-border-base rounded-xl p-4">
           <p class="text-sm font-medium text-text-primary mb-1">Mi Lista</p>
           <p class="text-sm text-text-muted">
-            Oportunidades que marcaste con <strong>+ Seguir</strong>. Puedes agregar notas personales,
-            registrar tu estado de seguimiento (nueva, en revisión, aplicada, descartada) y anotar
-            el resultado.
+            Oportunidades que marcaste con <strong>+ Seguir</strong>. Desde aquí puedes gestionar tu estado personal, agregar notas privadas y marcar como destacada cada oportunidad. Nadie más lo ve desde la app — aunque los datos se guardan en texto plano en la base de datos, por lo que quien tenga acceso directo a ella podría leerlos.
           </p>
         </div>
-        <div v-if="auth.isMember" class="bg-bg-surface border border-border-base rounded-xl p-4">
+        <div v-if="auth.canApprove" class="bg-bg-surface border border-border-base rounded-xl p-4">
           <p class="text-sm font-medium text-text-primary mb-1">Pendientes</p>
           <p class="text-sm text-text-muted">
-            Propuestas enviadas por usuarios invitados (rol Invitado) esperando aprobación.
-            Como miembro o admin puedes aprobarlas o rechazarlas.
+            Propuestas enviadas por invitados esperando revisión. Podés aprobarlas (se publican en el catálogo) o rechazarlas.
           </p>
         </div>
         <div v-if="auth.isAdmin" class="bg-bg-surface border border-border-base rounded-xl p-4">
           <p class="text-sm font-medium text-text-primary mb-1">Administración</p>
           <p class="text-sm text-text-muted">
-            Gestión de usuarios (roles, activación), invitaciones por link, e importación
-            masiva de oportunidades en formato JSON.
+            Gestión de usuarios (roles, activación), invitaciones por link e importación masiva en formato JSON.
           </p>
         </div>
       </div>
@@ -126,50 +119,35 @@ const permMatrix = [
       </div>
     </section>
 
-    <!-- Relevancia -->
-    <section class="space-y-3">
-      <h2 class="text-sm font-semibold text-text-primary uppercase tracking-wide">Nivel de relevancia</h2>
-      <p class="text-sm text-text-muted">Indica qué tan alineada está la oportunidad con el trabajo de seguridades.org.</p>
-      <div class="grid gap-2">
-        <div class="flex items-start gap-3 bg-bg-surface border border-border-base rounded-xl p-3.5">
-          <span class="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 shrink-0 mt-0.5">Alto</span>
-          <p class="text-sm text-text-muted">Aplica directamente a nuestro perfil. Prioridad para revisar y aplicar.</p>
-        </div>
-        <div class="flex items-start gap-3 bg-bg-surface border border-border-base rounded-xl p-3.5">
-          <span class="px-2 py-0.5 rounded text-xs font-medium bg-sky-100 text-sky-700 dark:bg-blue-900/40 dark:text-blue-400 shrink-0 mt-0.5">Bueno</span>
-          <p class="text-sm text-text-muted">Encaja con parte de nuestro trabajo. Vale evaluarlo según el contexto.</p>
-        </div>
-        <div class="flex items-start gap-3 bg-bg-surface border border-border-base rounded-xl p-3.5">
-          <span class="px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 shrink-0 mt-0.5">Selectivo</span>
-          <p class="text-sm text-text-muted">Requiere condiciones específicas para que aplique. Revisar con criterio.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Flujo de seguimiento -->
+    <!-- Flujo personal -->
     <section class="space-y-3">
       <h2 class="text-sm font-semibold text-text-primary uppercase tracking-wide">Flujo de seguimiento personal</h2>
-      <p class="text-sm text-text-muted">Al hacer clic en <strong>+ Seguir</strong> en una tarjeta, la oportunidad entra en tu lista personal. Desde Mi Lista puedes cambiar su estado:</p>
+      <p class="text-sm text-text-muted">Al hacer clic en <strong>+ Seguir</strong> la oportunidad entra en tu lista personal con estado <strong>Nueva</strong>. Desde Mi Lista puedes cambiar su estado:</p>
       <div class="flex flex-wrap gap-2">
         <div class="flex items-center gap-2 bg-bg-surface border border-border-base rounded-lg px-3 py-2">
-          <span class="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+          <span class="w-2 h-2 rounded-full bg-zinc-300 shrink-0"></span>
           <span class="text-xs text-text-primary font-medium">Nueva</span>
           <span class="text-xs text-text-muted">- recién agregada</span>
         </div>
         <div class="flex items-center gap-2 bg-bg-surface border border-border-base rounded-lg px-3 py-2">
+          <span class="w-2 h-2 rounded-full bg-green-500 shrink-0"></span>
+          <span class="text-xs text-text-primary font-medium">Siguiendo</span>
+          <span class="text-xs text-text-muted">- en seguimiento activo</span>
+        </div>
+        <div class="flex items-center gap-2 bg-bg-surface border border-border-base rounded-lg px-3 py-2">
           <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
-          <span class="text-xs text-text-primary font-medium">En revisión</span>
-          <span class="text-xs text-text-muted">- evaluando si aplicar</span>
+          <span class="text-xs text-text-primary font-medium">Aplicando</span>
+          <span class="text-xs text-text-muted">- en proceso</span>
         </div>
         <div class="flex items-center gap-2 bg-bg-surface border border-border-base rounded-lg px-3 py-2">
           <span class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>
           <span class="text-xs text-text-primary font-medium">Aplicada</span>
-          <span class="text-xs text-text-muted">- aplicación enviada</span>
+          <span class="text-xs text-text-muted">- enviada</span>
         </div>
         <div class="flex items-center gap-2 bg-bg-surface border border-border-base rounded-lg px-3 py-2">
           <span class="w-2 h-2 rounded-full bg-zinc-400 shrink-0"></span>
           <span class="text-xs text-text-primary font-medium">Descartada</span>
-          <span class="text-xs text-text-muted">- no aplica por ahora</span>
+          <span class="text-xs text-text-muted">- no aplica</span>
         </div>
       </div>
     </section>
@@ -183,15 +161,15 @@ const permMatrix = [
             <tr class="text-left">
               <th class="px-4 py-2.5 text-xs font-medium text-text-muted">Acción</th>
               <th class="px-4 py-2.5 text-xs font-medium text-text-muted text-center">Invitado</th>
-              <th class="px-4 py-2.5 text-xs font-medium text-text-muted text-center">Miembro</th>
+              <th class="px-4 py-2.5 text-xs font-medium text-text-muted text-center">Moderador</th>
               <th class="px-4 py-2.5 text-xs font-medium text-text-muted text-center">Admin</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border-base bg-bg-surface text-xs">
             <tr v-for="row in permMatrix" :key="row.action">
               <td class="px-4 py-2.5 text-text-muted">{{ row.action }}</td>
-              <td class="px-4 py-2.5 text-center">{{ row.guest }}</td>
-              <td class="px-4 py-2.5 text-center">{{ row.member }}</td>
+              <td class="px-4 py-2.5 text-center">{{ row.invitado }}</td>
+              <td class="px-4 py-2.5 text-center">{{ row.moderador }}</td>
               <td class="px-4 py-2.5 text-center">{{ row.admin }}</td>
             </tr>
           </tbody>
@@ -201,4 +179,3 @@ const permMatrix = [
 
   </div>
 </template>
-

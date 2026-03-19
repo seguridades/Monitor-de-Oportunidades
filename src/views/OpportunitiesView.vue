@@ -18,9 +18,9 @@ const follows = useFollowsStore()
 // Filters
 const typeFilter = ref('todas')
 const statusFilters = ref([])
-const fitFilters = ref([])
 const searchQuery = ref('')
 const tagFilter = ref('')
+const hideFollowed = ref(false)
 const showFilterPanel = ref(false)
 
 // Modal state
@@ -34,7 +34,6 @@ const typeOptions = [
   { value: 'grant', label: 'Grants' },
   { value: 'capacitacion', label: 'Capacitaciones' },
   { value: 'red', label: 'Redes' },
-  { value: 'featured', label: 'Destacadas' },
 ]
 
 const statusOptions = [
@@ -42,12 +41,6 @@ const statusOptions = [
   { value: 'en_revision', label: 'En revisión' },
   { value: 'aplicada', label: 'Aplicada' },
   { value: 'descartada', label: 'Descartada' },
-]
-
-const fitOptions = [
-  { value: 'Alto', label: 'Alto' },
-  { value: 'Bueno', label: 'Bueno' },
-  { value: 'Selectivo', label: 'Selectivo' },
 ]
 
 // Group config
@@ -62,26 +55,16 @@ const groupOrder = [
 // Count helpers
 function countByType(type) {
   if (type === 'todas') return opps.approved.length
-  if (type === 'featured') return opps.approved.filter(o => o.featured).length
   return opps.approved.filter(o => o.type === type).length
 }
 function countByStatus(status) {
   return opps.approved.filter(o => o.status === status).length
 }
-function countByFit(fit) {
-  return opps.approved.filter(o => o.fit === fit).length
-}
-
-// Filtered list
-const fitOrder = { Alto: 0, Bueno: 1, Selectivo: 2 }
-
 const filteredOpportunities = computed(() => {
   let list = opps.approved
 
   // Type filter
-  if (typeFilter.value === 'featured') {
-    list = list.filter(o => o.featured)
-  } else if (typeFilter.value !== 'todas') {
+  if (typeFilter.value !== 'todas') {
     list = list.filter(o => o.type === typeFilter.value)
   }
 
@@ -90,14 +73,14 @@ const filteredOpportunities = computed(() => {
     list = list.filter(o => statusFilters.value.includes(o.status))
   }
 
-  // Fit filter
-  if (fitFilters.value.length > 0) {
-    list = list.filter(o => fitFilters.value.includes(o.fit))
-  }
-
   // Tag filter
   if (tagFilter.value) {
     list = list.filter(o => Array.isArray(o.tags) && o.tags.includes(tagFilter.value))
+  }
+
+  // Hide followed
+  if (hideFollowed.value) {
+    list = list.filter(o => !follows.isFollowing(o.id))
   }
 
   // Search
@@ -110,14 +93,8 @@ const filteredOpportunities = computed(() => {
     )
   }
 
-  // Sort: featured first, then fit order, then deadline asc (null last)
+  // Sort: deadline asc (null last)
   return [...list].sort((a, b) => {
-    if (a.featured && !b.featured) return -1
-    if (!a.featured && b.featured) return 1
-    const fitA = fitOrder[a.fit] ?? 99
-    const fitB = fitOrder[b.fit] ?? 99
-    if (fitA !== fitB) return fitA - fitB
-    // deadline sort
     const dA = a.deadline?.toDate ? a.deadline.toDate() : a.deadline ? new Date(a.deadline) : null
     const dB = b.deadline?.toDate ? b.deadline.toDate() : b.deadline ? new Date(b.deadline) : null
     if (!dA && !dB) return 0
@@ -133,26 +110,20 @@ function toggleStatusFilter(val) {
   else statusFilters.value.push(val)
 }
 
-function toggleFitFilter(val) {
-  const idx = fitFilters.value.indexOf(val)
-  if (idx >= 0) fitFilters.value.splice(idx, 1)
-  else fitFilters.value.push(val)
-}
-
 const hasActiveFilters = computed(() =>
   typeFilter.value !== 'todas' ||
   statusFilters.value.length > 0 ||
-  fitFilters.value.length > 0 ||
   searchQuery.value.trim() !== '' ||
-  tagFilter.value !== ''
+  tagFilter.value !== '' ||
+  hideFollowed.value
 )
 
 function clearFilters() {
   typeFilter.value = 'todas'
   statusFilters.value = []
-  fitFilters.value = []
   searchQuery.value = ''
   tagFilter.value = ''
+  hideFollowed.value = false
 }
 
 function handleFilterTag(tag) {
@@ -191,7 +162,7 @@ async function handleFormSubmit(data) {
       toast.success('Oportunidad actualizada')
     } else {
       await opps.addOpportunity(data)
-      toast.success(auth.isMember ? 'Oportunidad agregada' : 'Enviada para aprobación')
+      toast.success(auth.canApprove ? 'Oportunidad agregada' : 'Enviada para aprobación')
     }
     closeModal()
   } catch (e) {
@@ -261,27 +232,26 @@ async function handleFormSubmit(data) {
         </div>
       </div>
 
-      <!-- Relevancia -->
-      <div>
-        <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Relevancia</p>
-        <div class="space-y-0.5">
-          <label
-            v-for="opt in fitOptions"
-            :key="opt.value"
-            class="flex items-center justify-between px-2 py-1.5 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-bg-surface-2 cursor-pointer transition-colors"
+
+      <!-- Mi lista -->
+      <div class="border-t border-border-base pt-4">
+        <label class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-bg-surface-2 transition-colors">
+          <button
+            role="switch"
+            :aria-checked="hideFollowed"
+            @click="hideFollowed = !hideFollowed"
+            class="relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none"
+            :class="hideFollowed ? 'bg-accent' : 'bg-border-base'"
           >
-            <div class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                :checked="fitFilters.includes(opt.value)"
-                @change="toggleFitFilter(opt.value)"
-                class="w-3.5 h-3.5 accent-accent"
-              />
-              {{ opt.label }}
-            </div>
-            <span class="text-xs">{{ countByFit(opt.value) }}</span>
-          </label>
-        </div>
+            <span
+              class="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform"
+              :class="hideFollowed ? 'translate-x-4' : 'translate-x-0'"
+            />
+          </button>
+          <span class="text-sm" :class="hideFollowed ? 'text-text-primary' : 'text-text-muted'">
+            Ocultar las que sigo
+          </span>
+        </label>
       </div>
 
     </aside>
@@ -327,7 +297,7 @@ async function handleFormSubmit(data) {
 
         <!-- Pending link (member) -->
         <RouterLink
-          v-if="auth.isMember && opps.pending.length > 0"
+          v-if="auth.canApprove && opps.pending.length > 0"
           to="/pending"
           class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber/10 text-amber text-xs font-medium border border-amber/30 hover:bg-amber/20 transition-colors"
         >

@@ -1,13 +1,31 @@
 <script setup>
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
-import { Menu, Sun, Moon } from 'lucide-vue-next'
+import { useNotificationsStore } from '@/stores/notifications'
+import { Menu, Sun, Moon, Bell } from 'lucide-vue-next'
 
 const ui = useUIStore()
 const auth = useAuthStore()
 const opps = useOpportunitiesStore()
+const notifs = useNotificationsStore()
+
+const showPanel = ref(false)
+
+function togglePanel() {
+  showPanel.value = !showPanel.value
+  if (showPanel.value && notifs.unreadCount > 0) {
+    notifs.markAllRead()
+  }
+}
+
+function formatDate(ts) {
+  if (!ts) return ''
+  const d = ts?.toDate ? ts.toDate() : new Date(ts)
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+}
 </script>
 
 <template>
@@ -21,10 +39,9 @@ const opps = useOpportunitiesStore()
       <Menu class="w-5 h-5" />
     </button>
 
-    <!-- Spacer -->
     <div class="flex-1" />
 
-    <!-- Pending count badge (member/admin) -->
+    <!-- Pending badge -->
     <RouterLink
       v-if="auth.isMember && opps.pending.length > 0"
       to="/pending"
@@ -33,6 +50,74 @@ const opps = useOpportunitiesStore()
       <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
       {{ opps.pending.length }} pendiente{{ opps.pending.length !== 1 ? 's' : '' }}
     </RouterLink>
+
+    <!-- Notification bell -->
+    <div class="relative">
+      <button
+        @click="togglePanel"
+        class="relative p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-surface-2 transition-colors"
+        aria-label="Notificaciones"
+      >
+        <Bell class="w-5 h-5" />
+        <span
+          v-if="notifs.unreadCount > 0"
+          class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent text-bg-base text-[10px] font-bold flex items-center justify-center leading-none"
+        >
+          {{ notifs.unreadCount > 9 ? '9+' : notifs.unreadCount }}
+        </span>
+      </button>
+
+      <!-- Backdrop -->
+      <div v-if="showPanel" class="fixed inset-0 z-40" @click="showPanel = false" />
+
+      <!-- Panel -->
+      <div
+        v-if="showPanel"
+        class="fixed z-50 right-4 mt-2 w-80 bg-bg-surface border border-border-base rounded-xl shadow-lg overflow-hidden"
+        style="top: 56px"
+      >
+        <div class="px-4 py-3 border-b border-border-base flex items-center justify-between">
+          <p class="text-sm font-semibold text-text-primary">Notificaciones</p>
+          <button
+            v-if="notifs.notifications.length > 0"
+            @click="notifs.markAllRead()"
+            class="text-xs text-accent hover:underline"
+          >
+            Marcar todas leídas
+          </button>
+        </div>
+
+        <div class="max-h-80 overflow-y-auto">
+          <div v-if="notifs.loading" class="px-4 py-6 text-center text-text-muted text-sm">
+            Cargando...
+          </div>
+          <div v-else-if="notifs.notifications.length === 0" class="px-4 py-8 text-center text-text-muted text-sm">
+            Sin notificaciones aún
+          </div>
+          <div v-else>
+            <div
+              v-for="n in notifs.notifications"
+              :key="n.id"
+              class="px-4 py-3 border-b border-border-base last:border-0 flex items-start gap-3 transition-colors"
+              :class="n.read ? 'bg-bg-surface' : 'bg-accent/5'"
+            >
+              <span
+                class="mt-0.5 shrink-0 w-2 h-2 rounded-full"
+                :class="n.type === 'approved' ? 'bg-green-500' : n.type === 'pending' ? 'bg-amber-400' : 'bg-danger'"
+              />
+              <div class="flex-1 min-w-0">
+                <p class="text-xs text-text-primary leading-snug">
+                  <span v-if="n.type === 'approved'">Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue aprobada y está en el catálogo.</span>
+                  <span v-else-if="n.type === 'pending'">Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue recibida y está pendiente de revisión.</span>
+                  <span v-else>Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue rechazada.</span>
+                </p>
+                <p class="text-xs text-text-muted mt-0.5">{{ formatDate(n.createdAt) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Theme toggle -->
     <button

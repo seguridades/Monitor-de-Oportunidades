@@ -5,10 +5,7 @@ import { toast } from 'vue-sonner'
 import { registerWithEmail } from '@/firebase/auth'
 import { db } from '@/firebase/config'
 import {
-  collection,
-  query,
-  where,
-  getDocs,
+  getDoc,
   setDoc,
   updateDoc,
   doc,
@@ -34,21 +31,21 @@ const submitting = ref(false)
 onMounted(async () => {
   try {
     const token = route.params.token
-    const q = query(
-      collection(db, 'invitations'),
-      where('token', '==', token),
-      where('used', '==', false)
-    )
-    const snap = await getDocs(q)
+    const invDoc = await getDoc(doc(db, 'invitations', token))
 
-    if (snap.empty) {
+    if (!invDoc.exists()) {
       step.value = 'invalid'
       errorMsg.value = 'Invitación no encontrada o ya utilizada.'
       return
     }
 
-    const invDoc = snap.docs[0]
     const data = invDoc.data()
+
+    if (data.used) {
+      step.value = 'invalid'
+      errorMsg.value = 'Invitación no encontrada o ya utilizada.'
+      return
+    }
 
     // Check expiration
     const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt)
@@ -60,6 +57,7 @@ onMounted(async () => {
 
     invitation.value = data
     inviteDocId.value = invDoc.id
+
     step.value = 'valid'
   } catch (e) {
     step.value = 'invalid'
@@ -85,8 +83,8 @@ async function handleEmailRegister() {
 
     await setDoc(doc(db, 'users', uid), {
       displayName: displayName.value.trim(),
-      email: invitation.value.email,
       org: org.value.trim() || null,
+      email: invitation.value.email,
       role: invitation.value.role,
       active: true,
       invitedBy: invitation.value.invitedBy ?? null,
@@ -145,22 +143,22 @@ async function handleEmailRegister() {
 
         <form @submit.prevent="handleEmailRegister" class="space-y-3">
           <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Nombre completo *</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Nombre o pseudónimo *</label>
             <input
               v-model="displayName"
               type="text"
               required
               class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
-              placeholder="Tu nombre"
+              placeholder="Cómo quieres nombrarte"
             />
           </div>
           <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Organización</label>
+            <label class="block text-xs font-medium text-text-muted mb-1">Organización <span class="text-text-muted font-normal">(opcional)</span></label>
             <input
               v-model="org"
               type="text"
               class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
-              placeholder="Tu org (opcional)"
+              placeholder="Tu organización o institución"
             />
           </div>
           <div>

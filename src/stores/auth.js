@@ -11,9 +11,19 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!user.value)
   const role = computed(() => userProfile.value?.role ?? null)
+
   const isAdmin = computed(() => role.value === 'admin')
-  const isMember = computed(() => role.value === 'admin' || role.value === 'member')
-  const isGuest = computed(() => role.value === 'guest')
+  const isModerador = computed(() => role.value === 'moderador')
+  // invitado = everyone else
+  const isInvitado = computed(() => !isAdmin.value && !isModerador.value)
+
+  // canEdit/canApprove: admin + moderador
+  const canEdit = computed(() => isAdmin.value || isModerador.value)
+  const canApprove = computed(() => isAdmin.value || isModerador.value)
+
+  // Legacy aliases
+  const isMember = canEdit
+  const canApproveGlobal = canApprove
 
   async function loadUserProfile(uid) {
     const docRef = doc(db, 'users', uid)
@@ -47,7 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
           try {
             await updateDoc(docRef, { lastSeen: serverTimestamp() })
           } catch {
-            // Non-critical, ignore
+            // Non-critical
           }
         } else {
           user.value = null
@@ -67,16 +77,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    user,
-    userProfile,
-    loading,
-    isAuthenticated,
-    role,
-    isAdmin,
-    isMember,
-    isGuest,
-    init,
-    logout,
-    loadUserProfile,
+    user, userProfile, loading,
+    isAuthenticated, role,
+    isAdmin, isModerador, isInvitado,
+    canEdit, canApprove,
+    // legacy aliases
+    isMember, canApproveGlobal,
+    init, logout, loadUserProfile,
   }
 })

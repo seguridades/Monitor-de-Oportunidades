@@ -1,0 +1,164 @@
+[
+  {
+    "title": "OTF Internet Freedom Fund",
+    "type": "grant",
+    "description": "Apoya proyectos que promuevan la libertad en internet, con enfoque en herramientas de privacidad, evasión de censura y comunicaciones seguras.",
+    "url": "https://www.opentech.fund/funds/internet-freedom-fund/",
+    "tags": ["grant", "seguridad digital", "privacidad", "Global South"],
+    "monto": "USD 10k–900k",
+    "quien_puede_aplicar": "Individuos y organizaciones a nivel global",
+    "deadline": "2026-09-30"
+  },
+  {
+    "title": "OTF Rapid Response Fund",
+    "type": "grant",
+    "description": "Fondo de respuesta rápida para individuos y organizaciones que enfrentan amenazas digitales inmediatas. Respuesta en 1-2 semanas.",
+    "url": "https://www.opentech.fund/funds/rapid-response-fund/",
+    "tags": ["grant", "respuesta rápida", "emergencia", "seguridad digital"],
+    "monto": "Hasta USD 50k",
+    "quien_puede_aplicar": "Individuos y organizaciones bajo amenaza activa"
+  },
+  {
+    "title": "Freedom of the Press Foundation – Security Training",
+    "type": "capacitacion",
+    "description": "Capacitaciones en seguridad digital para periodistas y medios de comunicación. Incluye módulos de comunicaciones seguras, protección de fuentes y manejo de dispositivos.",
+    "url": "https://freedom.press/training/",
+    "tags": ["capacitación", "periodismo", "seguridad digital"],
+    "fecha": "2026-06-15",
+    "modalidad": "virtual",
+    "dirigido_a": "Periodistas, editores y trabajadores de medios"
+  },
+  {
+    "title": "Digital Defenders Partnership – Institutional Grants",
+    "type": "grant",
+    "description": "Financiamiento institucional para organizaciones que brindan seguridad digital a comunidades en riesgo. Convocatoria anual.",
+    "url": "https://www.digitaldefenders.org/funding/",
+    "tags": ["grant", "institucional", "sociedad civil", "defensores"],
+    "monto": "USD 50k–150k",
+    "quien_puede_aplicar": "Organizaciones con al menos 2 años de operación en seguridad digital",
+    "deadline": "2026-05-01"
+  },
+  {
+    "title": "Mozilla Technology Fund",
+    "type": "grant",
+    "description": "Apoya proyectos de código abierto que fortalezcan la salud de internet. Especial interés en herramientas de privacidad y seguridad.",
+    "url": "https://foundation.mozilla.org/en/what-we-fund/",
+    "tags": ["grant", "open source", "privacidad", "tecnología"],
+    "monto": "USD 50k–500k",
+    "quien_puede_aplicar": "Proyectos de código abierto y organizaciones sin fines de lucro"
+  },
+  {
+    "title": "Internews – Safe at Scale",
+    "type": "convocatoria",
+    "description": "Programa para fortalecer la capacidad de organizaciones locales en seguridad digital. Incluye financiamiento + acompañamiento técnico por 12 meses.",
+    "url": "https://internews.org/areas-of-expertise/technology/safe-at-scale/",
+    "tags": ["convocatoria", "fortalecimiento", "América Latina", "seguridad digital"],
+    "monto": "USD 30k–80k",
+    "deadline": "2026-04-15"
+  },
+  {
+    "title": "Frontline Defenders – Protection Grants",
+    "type": "grant",
+    "description": "Grants de protección para defensores de derechos humanos en riesgo. Cubre tanto seguridad física como digital.",
+    "url": "https://www.frontlinedefenders.org/en/programme/protection-grants",
+    "tags": ["grant", "defensores", "protección", "emergencia"],
+    "monto": "Hasta USD 10k",
+    "quien_puede_aplicar": "Defensores de DDHH en situación de riesgo documentado"
+  },
+  {
+    "title": "ISOC – Beyond the Net Funding Programme",
+    "type": "grant",
+    "description": "Financia proyectos comunitarios que expanden el acceso a internet y fortalecen su uso seguro. Foco en comunidades subrepresentadas.",
+    "url": "https://www.internetsociety.org/beyond-the-net/",
+    "tags": ["grant", "acceso", "comunidad", "internet"],
+    "monto": "Hasta USD 30k",
+    "quien_puede_aplicar": "Organizaciones comunitarias y capítulos locales de ISOC",
+    "deadline": "2026-06-30"
+  },
+  {
+    "title": "Access Now – Digital Security Helpline (partnerships)",
+    "type": "fuente",
+    "description": "Access Now busca periódicamente organizaciones regionales para partnerships de su helpline. Revisar sección de jobs y convocatorias.",
+    "url": "https://www.accessnow.org/help/#jobs",
+    "tags": ["partnership", "helpline", "seguridad digital", "América Latina"],
+    "freq": "mensual"
+  },
+  {
+    "title": "fundsforNGOs – Tecnología y Seguridad Digital",
+    "type": "fuente",
+    "description": "Agrega convocatorias de múltiples donantes. Filtrar por 'digital security', 'civil society', 'Latin America' para encontrar oportunidades relevantes.",
+    "url": "https://www.fundsforngos.org",
+    "tags": ["agregador", "convocatorias"],
+    "freq": "semanal"
+  },
+  {
+    "title": "Tor Project – Outreach y Training",
+    "type": "fuente",
+    "description": "El Tor Project publica oportunidades de colaboración y contratos para trainers en privacidad y anonimato. Revisar sección de jobs periódicamente.",
+    "url": "https://www.torproject.org/about/jobs/",
+    "tags": ["privacidad", "anonimato", "capacitación", "open source"],
+    "freq": "mensual"
+  },
+  {
+    "title": "Digital Rights Foundation – Cyber Harassment Helpline Training",
+    "type": "capacitacion",
+    "description": "Formación para operadores de líneas de apoyo ante acoso digital. Incluye protocolos de atención y seguridad operacional.",
+    "url": "https://digitalrightsfoundation.pk/trainings/",
+    "tags": ["capacitación", "acoso digital", "helpline", "género"],
+    "fecha": "2026-07-10",
+    "modalidad": "virtual",
+    "dirigido_a": "Operadores de líneas de apoyo y acompañantes digitales"
+  },
+  {
+    "title": "EFF – Coders Rights Project (consultoría legal)",
+    "type": "red",
+    "description": "Red de apoyo legal para investigadores de seguridad y activistas técnicos. Útil para orgas que documentan vulnerabilidades o hacen disclosure.",
+    "url": "https://www.eff.org/issues/coders",
+    "tags": ["red", "legal", "investigación de seguridad"],
+    "como_unirse": "Contactar directamente ante un caso — no es membresía formal"
+  },
+  {
+    "title": "Global Encryption Coalition",
+    "type": "red",
+    "description": "Coalición global que defiende el cifrado. Membresía gratuita para organizaciones. Útil para posicionamiento y advocacy en políticas digitales.",
+    "url": "https://www.globalencryption.org/join/",
+    "tags": ["red", "cifrado", "advocacy", "política digital"],
+    "como_unirse": "Formulario de membresía en el sitio — aprobación en 1-2 semanas"
+  },
+  {
+    "title": "LACTLD – Programa de Fortalecimiento de Capacidades",
+    "type": "capacitacion",
+    "description": "Capacitaciones técnicas para organizaciones de sociedad civil en América Latina sobre infraestructura de internet, DNS y seguridad de red.",
+    "url": "https://www.lactld.org/",
+    "tags": ["capacitación", "infraestructura", "DNS", "América Latina"],
+    "modalidad": "hibrida",
+    "dirigido_a": "Equipos técnicos de OSC y medios en AL"
+  },
+  {
+    "title": "Hivos Digital Defenders – Emergency Funding",
+    "type": "grant",
+    "description": "Financiamiento de emergencia 24/7 para defensores digitales bajo ataque activo. Proceso acelerado, respuesta en 48-72 horas.",
+    "url": "https://www.digitaldefenders.org/funding/emergency-funding/",
+    "tags": ["emergencia", "grant", "defensores", "respuesta rápida"],
+    "monto": "Hasta USD 10k",
+    "quien_puede_aplicar": "Defensores digitales bajo amenaza activa documentada"
+  },
+  {
+    "title": "NED – National Endowment for Democracy (Internet Freedom)",
+    "type": "grant",
+    "description": "Financia proyectos que promueven la libertad de internet y los derechos digitales en contextos autoritarios o con restricciones al espacio cívico.",
+    "url": "https://www.ned.org/apply-for-grant/",
+    "tags": ["grant", "libertad de internet", "derechos digitales", "espacio cívico"],
+    "monto": "USD 25k–100k",
+    "quien_puede_aplicar": "ONGs locales y regionales — requiere aval de oficina regional NED",
+    "deadline": "2026-08-01"
+  },
+  {
+    "title": "Conexo – Red Latinoamericana de Seguridad Digital",
+    "type": "red",
+    "description": "Red informal de practicantes de seguridad digital en AL. Intercambio de recursos, alertas de amenazas regionales y coordinación en respuesta a incidentes.",
+    "url": "https://conexo.org",
+    "tags": ["red", "América Latina", "seguridad digital", "comunidad"],
+    "como_unirse": "Solicitar acceso vía formulario en el sitio — comunidad cerrada"
+  }
+]

@@ -8,17 +8,20 @@ import { useOpportunitiesStore } from '@/stores/opportunities'
 import { useFollowsStore } from '@/stores/follows'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const auth = useAuthStore()
 const opps = useOpportunitiesStore()
 const follows = useFollowsStore()
 const ui = useUIStore()
+const notifs = useNotificationsStore()
 
 const showWelcome = ref(false)
 
 onMounted(() => {
   opps.subscribe()
   follows.subscribe()
+  notifs.subscribe()
   if (!localStorage.getItem('onboarding_done')) {
     showWelcome.value = true
   }
@@ -26,6 +29,7 @@ onMounted(() => {
 onUnmounted(() => {
   opps.stopSubscription()
   follows.stopSubscription()
+  notifs.stopSubscription()
 })
 </script>
 

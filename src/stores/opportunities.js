@@ -2,78 +2,69 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { db } from '@/firebase/config'
 import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  serverTimestamp,
+  collection, doc, addDoc, updateDoc, deleteDoc,
+  query, where, orderBy, onSnapshot, serverTimestamp,
 } from 'firebase/firestore'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationsStore } from '@/stores/notifications'
 
 export const useOpportunitiesStore = defineStore('opportunities', () => {
-  const opportunities = ref([])
+  const allOpportunities = ref([])
   const loading = ref(false)
   let unsubscribe = null
 
-  const pending = computed(() =>
-    opportunities.value.filter((o) => o.status === 'pendiente_aprobacion')
+  const approved = computed(() =>
+    allOpportunities.value.filter(o => o.status !== 'pendiente_aprobacion')
   )
 
-  const approved = computed(() =>
-    opportunities.value.filter((o) => o.status !== 'pendiente_aprobacion')
+  const pending = computed(() =>
+    allOpportunities.value.filter(o => o.status === 'pendiente_aprobacion')
   )
 
   function subscribe() {
     const auth = useAuthStore()
     loading.value = true
-
     const col = collection(db, 'opportunities')
     let q
-
-    if (auth.isMember) {
+    if (auth.canApprove) {
+      // Admin/moderador: fetch everything including pending
       q = query(col, orderBy('createdAt', 'desc'))
     } else {
-      q = query(col, where('status', '!=', 'pendiente_aprobacion'), orderBy('status'), orderBy('createdAt', 'desc'))
+      // Invitados: query must match rule (status != pendiente_aprobacion)
+      // Single orderBy('status') avoids composite index requirement
+      q = query(col, where('status', '!=', 'pendiente_aprobacion'), orderBy('status'))
     }
-
-    unsubscribe = onSnapshot(q, (snapshot) => {
-      opportunities.value = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+    unsubscribe = onSnapshot(q, (snap) => {
+      allOpportunities.value = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       loading.value = false
-    }, () => {
-      loading.value = false
-    })
+    }, () => { loading.value = false })
   }
 
   function stopSubscription() {
-    if (unsubscribe) {
-      unsubscribe()
-      unsubscribe = null
-    }
+    if (unsubscribe) { unsubscribe(); unsubscribe = null }
+    allOpportunities.value = []
   }
 
   async function addOpportunity(data) {
     const auth = useAuthStore()
-    const status = auth.isMember ? 'nueva' : 'pendiente_aprobacion'
-
+    const status = auth.canApprove ? 'nueva' : 'pendiente_aprobacion'
+    const { scope: _scope, orgId: _orgId, ...rest } = data
     await addDoc(collection(db, 'opportunities'), {
-      ...data,
+      ...rest,
       addedBy: auth.user?.uid ?? null,
-      addedByOrg: auth.userProfile?.org ?? null,
+      addedByName: auth.userProfile?.displayName ?? null,
       status,
-      featured: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
+    if (!auth.canApprove && auth.user) {
+      const notifs = useNotificationsStore()
+      notifs.createNotification(auth.user.uid, 'pending', data.title).catch(() => {})
+    }
   }
 
   async function updateOpportunity(id, data) {
-    const docRef = doc(db, 'opportunities', id)
-    await updateDoc(docRef, {
+    await updateDoc(doc(db, 'opportunities', id), {
       ...data,
       updatedAt: serverTimestamp(),
     })
@@ -85,22 +76,25 @@ export const useOpportunitiesStore = defineStore('opportunities', () => {
 
   async function approveOpportunity(id) {
     const auth = useAuthStore()
+    const opp = allOpportunities.value.find(o => o.id === id)
     await updateDoc(doc(db, 'opportunities', id), {
       status: 'nueva',
       approvedBy: auth.user?.uid ?? null,
       updatedAt: serverTimestamp(),
     })
+    if (opp?.addedBy) {
+      const notifs = useNotificationsStore()
+      notifs.createNotification(opp.addedBy, 'approved', opp.title).catch(() => {})
+    }
   }
 
   async function rejectOpportunity(id) {
+    const opp = allOpportunities.value.find(o => o.id === id)
     await deleteDoc(doc(db, 'opportunities', id))
-  }
-
-  async function toggleFeatured(id, currentFeatured) {
-    await updateDoc(doc(db, 'opportunities', id), {
-      featured: !currentFeatured,
-      updatedAt: serverTimestamp(),
-    })
+    if (opp?.addedBy) {
+      const notifs = useNotificationsStore()
+      notifs.createNotification(opp.addedBy, 'rejected', opp.title).catch(() => {})
+    }
   }
 
   async function changeStatus(id, status) {
@@ -111,18 +105,11 @@ export const useOpportunitiesStore = defineStore('opportunities', () => {
   }
 
   return {
-    opportunities,
-    loading,
-    pending,
-    approved,
-    subscribe,
-    stopSubscription,
-    addOpportunity,
-    updateOpportunity,
-    deleteOpportunity,
-    approveOpportunity,
-    rejectOpportunity,
-    toggleFeatured,
+    allOpportunities, loading,
+    approved, pending,
+    subscribe, stopSubscription,
+    addOpportunity, updateOpportunity, deleteOpportunity,
+    approveOpportunity, rejectOpportunity,
     changeStatus,
   }
 })

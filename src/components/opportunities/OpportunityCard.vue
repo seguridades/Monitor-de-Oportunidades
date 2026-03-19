@@ -1,12 +1,12 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
+import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText, ArrowRight, Plus, Trash2 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
 import { useFollowsStore } from '@/stores/follows'
 import OpportunityStatusBadge from './OpportunityStatusBadge.vue'
-import OpportunityNotes from './OpportunityNotes.vue'
 import AppTag from '@/components/ui/AppTag.vue'
 import AppConfirm from '@/components/ui/AppConfirm.vue'
 
@@ -16,14 +16,29 @@ const props = defineProps({
 })
 const emit = defineEmits(['edit', 'filter-tag'])
 
+const router = useRouter()
 const auth = useAuthStore()
 const opps = useOpportunitiesStore()
 const follows = useFollowsStore()
 
 const showMenu = ref(false)
 const showNotes = ref(false)
-const showStatusPicker = ref(false)
 const showDeleteConfirm = ref(false)
+const newNoteText = ref('')
+const savingNote = ref(false)
+
+async function submitNote() {
+  if (!newNoteText.value.trim() || savingNote.value) return
+  savingNote.value = true
+  await follows.addNote(props.opportunity.id, newNoteText.value)
+  newNoteText.value = ''
+  savingNote.value = false
+}
+
+function formatNoteDate(iso) {
+  const d = new Date(iso)
+  return d.toLocaleString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
 const menuPos = ref({ top: 0, right: 0 })
 const menuBtnRef = ref(null)
 
@@ -43,11 +58,11 @@ const followData = computed(() => follows.getFollow(props.opportunity.id))
 
 // Type badge config
 const typeBadgeClass = {
-  fuente:      'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300',
-  convocatoria:'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400',
-  grant:       'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
-  capacitacion:'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400',
-  red:         'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400',
+  fuente:       'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300',
+  convocatoria: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400',
+  grant:        'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+  capacitacion: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400',
+  red:          'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400',
 }
 const typeLabel = {
   fuente: 'Fuente',
@@ -64,14 +79,7 @@ const externalLinkLabel = {
   red: 'Conectar',
 }
 
-// Fit badge
-const fitBadgeClass = {
-  Alto:      'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
-  Bueno:     'bg-sky-100 text-sky-700 dark:bg-blue-900/40 dark:text-blue-400',
-  Selectivo: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
-}
 
-// Deadline countdown
 function deadlineInfo(dateVal) {
   if (!dateVal) return null
   const d = dateVal?.toDate ? dateVal.toDate() : new Date(dateVal)
@@ -99,31 +107,23 @@ function deadlineInfo(dateVal) {
 
 const deadlineData = computed(() => {
   const opp = props.opportunity
-  const dateVal = opp.deadline || opp.fecha || null
-  return deadlineInfo(dateVal)
+  return deadlineInfo(opp.deadline || opp.fecha || null)
 })
 
-// Actions
 async function handleFollow() {
   if (following.value) {
-    await follows.unfollow(props.opportunity.id)
-    toast.success('Dejaste de seguir')
+    // In general list: navigate to Mi Lista instead of unfollowing
+    router.push('/my-list')
   } else {
     await follows.follow(props.opportunity.id)
-    toast.success('Siguiendo')
+    toast.success('Agregada a tu lista')
   }
 }
 
-async function handleToggleFeatured() {
-  await opps.toggleFeatured(props.opportunity.id, props.opportunity.featured)
-  toast.success(props.opportunity.featured ? 'Quitado de destacadas' : 'Marcado como destacada')
-  showMenu.value = false
-}
-
-async function handleChangeStatus(status) {
-  await opps.changeStatus(props.opportunity.id, status)
-  toast.success('Estado actualizado')
-  showStatusPicker.value = false
+async function handleToggleStar() {
+  const current = followData.value?.starred ?? false
+  await follows.updateFollow(props.opportunity.id, { starred: !current })
+  toast.success(current ? 'Quitado de destacadas' : 'Marcado como destacada')
   showMenu.value = false
 }
 
@@ -143,43 +143,26 @@ function handleEdit() {
   showMenu.value = false
 }
 
-// Follow panel personal status
 const personalStatusOptions = [
+  { value: 'nueva', label: 'Nueva' },
   { value: 'siguiendo', label: 'Siguiendo' },
   { value: 'aplicando', label: 'Aplicando' },
   { value: 'aplicada', label: 'Aplicada' },
   { value: 'descartada', label: 'Descartada' },
 ]
 
-async function handlePersonalStatusChange(e) {
-  await follows.updateFollow(props.opportunity.id, { personalStatus: e.target.value })
+async function handlePersonalStatusChange(value) {
+  await follows.updateFollow(props.opportunity.id, { personalStatus: value })
+  showMenu.value = false
 }
 
-async function handleNoteUpdate(e) {
-  await follows.updateFollow(props.opportunity.id, { personalNote: e.target.value })
-}
-
-async function handleNoteSharedToggle(e) {
-  await follows.updateFollow(props.opportunity.id, { noteShared: e.target.checked })
-}
-
-const statusOptions = [
-  { value: 'nueva', label: 'Nueva' },
-  { value: 'en_revision', label: 'En revisión' },
-  { value: 'aplicada', label: 'Aplicada' },
-  { value: 'descartada', label: 'Descartada' },
-]
 </script>
 
 <template>
-  <div
-    class="relative bg-bg-surface border border-border-base rounded-xl overflow-hidden transition-shadow hover:shadow-sm"
-    :class="opportunity.featured ? 'border-l-4 border-l-brand-magenta bg-bg-surface-2' : ''"
-  >
+  <div class="relative bg-bg-surface border border-border-base rounded-xl overflow-hidden transition-shadow hover:shadow-sm">
     <div class="p-4">
-      <!-- Header row: type/fit badges + spacer + status + menu -->
+      <!-- Header row -->
       <div class="flex items-center gap-1.5 flex-wrap mb-2">
-        <!-- Type badge -->
         <span
           class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
           :class="typeBadgeClass[opportunity.type] ?? 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300'"
@@ -187,30 +170,24 @@ const statusOptions = [
           {{ typeLabel[opportunity.type] ?? opportunity.type }}
         </span>
 
-        <!-- Fit badge -->
-        <span
-          v-if="opportunity.fit"
-          class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-          :class="fitBadgeClass[opportunity.fit] ?? 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300'"
-        >
-          {{ opportunity.fit }}
-        </span>
 
-        <!-- Featured badge -->
+        <div class="flex-1" />
+
+        <!-- Status: personal (My List) or platform -->
+        <OpportunityStatusBadge
+          :status="showFollowPanel && followData?.personalStatus ? followData.personalStatus : opportunity.status"
+        />
+
+        <!-- Personal star badge (My List only) -->
         <span
-          v-if="opportunity.featured"
-          class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-brand-magenta/20 text-brand-magenta border border-brand-magenta/30"
+          v-if="showFollowPanel && followData?.starred"
+          class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
         >
           ★ Destacada
         </span>
 
-        <div class="flex-1" />
-
-        <!-- Status -->
-        <OpportunityStatusBadge :status="opportunity.status" />
-
-        <!-- Menu button (member/admin) -->
-        <div v-if="auth.isMember">
+        <!-- Menu button: canEdit in general list; all users in My List -->
+        <div v-if="showFollowPanel || auth.canEdit">
           <button
             ref="menuBtnRef"
             @click="openMenu"
@@ -221,44 +198,59 @@ const statusOptions = [
 
           <Teleport to="body">
             <template v-if="showMenu">
-              <!-- Overlay to close -->
               <div class="fixed inset-0 z-40" @click="showMenu = false" />
-
-              <!-- Dropdown -->
               <div
-                class="fixed z-50 w-44 bg-bg-surface border border-border-base rounded-lg shadow-lg py-1"
+                class="fixed z-50 w-48 bg-bg-surface border border-border-base rounded-lg shadow-lg py-1"
                 :style="{ top: menuPos.top + 'px', right: menuPos.right + 'px' }"
               >
-                <div class="px-3 py-1.5 text-xs text-text-muted font-medium">Cambiar estado</div>
-                <button
-                  v-for="opt in statusOptions"
-                  :key="opt.value"
-                  @click="handleChangeStatus(opt.value)"
-                  class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
-                >
-                  {{ opt.label }}
-                </button>
-                <div class="h-px bg-border-base my-1" />
-                <button
-                  @click="handleToggleFeatured"
-                  class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors flex items-center gap-2"
-                >
-                  <Star class="w-3.5 h-3.5" />
-                  {{ opportunity.featured ? 'Quitar destacado' : 'Destacar' }}
-                </button>
-                <button
-                  @click="handleEdit"
-                  class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
-                >
-                  Editar
-                </button>
-                <button
-                  v-if="auth.isAdmin"
-                  @click="handleDelete"
-                  class="w-full text-left px-3 py-1.5 text-xs text-danger hover:bg-danger/10 transition-colors"
-                >
-                  Eliminar
-                </button>
+                <!-- My List menu -->
+                <template v-if="showFollowPanel">
+                  <!-- Personal status -->
+                  <div class="px-3 py-1.5 text-xs text-text-muted font-medium">Mi estado</div>
+                  <button
+                    v-for="opt in personalStatusOptions"
+                    :key="opt.value"
+                    @click="handlePersonalStatusChange(opt.value)"
+                    class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-surface-2 transition-colors flex items-center justify-between"
+                    :class="followData?.personalStatus === opt.value ? 'text-accent font-medium' : 'text-text-primary'"
+                  >
+                    {{ opt.label }}
+                    <span v-if="followData?.personalStatus === opt.value" class="text-accent text-[10px]">✓</span>
+                  </button>
+                  <!-- Personal star -->
+                  <div class="h-px bg-border-base my-1" />
+                  <button
+                    @click="handleToggleStar"
+                    class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors flex items-center gap-2"
+                  >
+                    <Star class="w-3.5 h-3.5" :class="followData?.starred ? 'fill-amber-400 text-amber-400' : ''" />
+                    {{ followData?.starred ? 'Quitar destacado' : 'Destacar' }}
+                  </button>
+                  <!-- Dejar de seguir -->
+                  <div class="h-px bg-border-base my-1" />
+                  <button
+                    @click="follows.unfollow(opportunity.id); showMenu = false"
+                    class="w-full text-left px-3 py-1.5 text-xs text-danger hover:bg-danger/10 transition-colors"
+                  >
+                    Dejar de seguir
+                  </button>
+                </template>
+
+                <!-- General list menu (canEdit only): edit + delete -->
+                <template v-else>
+                  <button
+                    @click="handleEdit"
+                    class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    @click="handleDelete"
+                    class="w-full text-left px-3 py-1.5 text-xs text-danger hover:bg-danger/10 transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </template>
               </div>
             </template>
           </Teleport>
@@ -277,12 +269,9 @@ const statusOptions = [
 
       <!-- Type-specific info -->
       <div class="text-xs text-text-muted mb-2 space-y-0.5">
-        <!-- fuente -->
         <div v-if="opportunity.type === 'fuente' && opportunity.freq">
           Revisar cada <span class="text-text-primary">{{ opportunity.freq === 'semanal' ? 'semana' : 'mes' }}</span>
         </div>
-
-        <!-- convocatoria -->
         <template v-if="opportunity.type === 'convocatoria'">
           <div v-if="opportunity.monto" class="text-text-primary font-medium">{{ opportunity.monto }}</div>
           <div v-if="deadlineData" :class="deadlineData.colorClass">
@@ -291,8 +280,6 @@ const statusOptions = [
           </div>
           <div v-else class="text-text-muted">Sin fecha límite</div>
         </template>
-
-        <!-- grant -->
         <template v-if="opportunity.type === 'grant'">
           <div v-if="opportunity.monto" class="text-text-primary font-semibold">{{ opportunity.monto }}</div>
           <div v-if="opportunity.quien_puede_aplicar" class="text-text-muted">{{ opportunity.quien_puede_aplicar }}</div>
@@ -301,8 +288,6 @@ const statusOptions = [
           </div>
           <div v-else class="text-accent text-xs">Fondo abierto</div>
         </template>
-
-        <!-- capacitacion -->
         <template v-if="opportunity.type === 'capacitacion'">
           <div v-if="deadlineData">
             Fecha: <span :class="deadlineData.colorClass">{{ deadlineData.formatted }}</span>
@@ -310,8 +295,6 @@ const statusOptions = [
           <div v-if="opportunity.modalidad" class="capitalize">{{ opportunity.modalidad }}</div>
           <div v-if="opportunity.dirigido_a">Para: {{ opportunity.dirigido_a }}</div>
         </template>
-
-        <!-- red -->
         <div v-if="opportunity.type === 'red' && opportunity.como_unirse">
           {{ opportunity.como_unirse }}
         </div>
@@ -324,7 +307,6 @@ const statusOptions = [
 
       <!-- Footer: actions -->
       <div class="flex items-center gap-2 flex-wrap">
-        <!-- External link -->
         <a
           v-if="opportunity.url"
           :href="opportunity.url"
@@ -338,34 +320,33 @@ const statusOptions = [
 
         <div class="flex-1" />
 
-        <!-- Notes button (member/admin) -->
+        <!-- Notes button (My List only) -->
         <button
-          v-if="auth.isMember"
+          v-if="showFollowPanel"
           @click="showNotes = !showNotes"
           class="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded-lg border transition-colors"
-          :class="opportunity.notesCount > 0
+          :class="followData?.notes?.length
             ? 'border-accent/40 text-accent bg-accent/5 hover:bg-accent/10'
             : 'border-border-base text-text-muted hover:text-text-primary hover:border-accent'"
         >
           <FileText class="w-3.5 h-3.5" />
-          Notas
-          <span
-            v-if="opportunity.notesCount > 0"
-            class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-accent text-bg-base text-[10px] font-medium leading-none"
-          >{{ opportunity.notesCount }}</span>
+          Notas{{ followData?.notes?.length ? ` (${followData.notes.length})` : '' }}
         </button>
 
-        <!-- Follow/Unfollow -->
+
+        <!-- Personal Follow -->
         <button
+          v-if="!showFollowPanel"
           @click="handleFollow"
           class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors"
           :class="following
-            ? 'border-accent text-accent bg-accent/10 hover:bg-danger/10 hover:text-danger hover:border-danger'
+            ? 'border-accent/40 text-accent bg-accent/8 hover:bg-accent/15'
             : 'border-border-base text-text-muted hover:text-accent hover:border-accent'"
         >
           <BookmarkCheck v-if="following" class="w-3.5 h-3.5" />
           <Bookmark v-else class="w-3.5 h-3.5" />
-          {{ following ? 'Siguiendo' : '+ Seguir' }}
+          {{ following ? 'En mi lista' : '+ Seguir' }}
+          <ArrowRight v-if="following" class="w-3 h-3 ml-0.5" />
         </button>
       </div>
     </div>
@@ -379,57 +360,52 @@ const statusOptions = [
       @cancel="showDeleteConfirm = false"
     />
 
-    <!-- Notes section (collapsible) -->
-    <div v-if="showNotes && auth.isMember" class="border-t border-border-base">
-      <OpportunityNotes :opportunity-id="opportunity.id" />
-    </div>
+    <!-- Notes panel (My List only) -->
+    <div v-if="showNotes && showFollowPanel" class="border-t border-border-base px-4 py-3 space-y-2">
+      <p class="text-xs font-medium text-text-muted">Notas <span class="font-normal">(solo visibles para ti)</span></p>
 
-    <!-- Personal follow panel (My List view) -->
-    <div
-      v-if="showFollowPanel && following && followData"
-      class="border-t border-border-base px-4 py-3 bg-bg-base space-y-2"
-    >
-      <div class="flex items-center gap-3">
-        <div class="flex-1">
-          <label class="block text-xs text-text-muted mb-1">Mi estado</label>
-          <select
-            :value="followData.personalStatus"
-            @change="handlePersonalStatusChange"
-            class="w-full px-2 py-1.5 rounded border border-border-base bg-bg-surface text-text-primary text-xs focus:outline-none focus:border-accent"
-          >
-            <option v-for="opt in personalStatusOptions" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
-        </div>
-        <button
-          @click="follows.unfollow(opportunity.id)"
-          class="text-xs text-danger hover:underline mt-4"
+      <!-- Existing notes -->
+      <div v-if="followData?.notes?.length" class="space-y-2 max-h-48 overflow-y-auto">
+        <div
+          v-for="note in [...(followData.notes)].reverse()"
+          :key="note.id"
+          class="group flex gap-2 bg-bg-base rounded-lg px-2.5 py-2"
         >
-          Dejar de seguir
+          <div class="flex-1 min-w-0">
+            <p class="text-xs text-text-primary whitespace-pre-wrap">{{ note.text }}</p>
+            <p class="text-[10px] text-text-muted mt-1">{{ formatNoteDate(note.createdAt) }}</p>
+          </div>
+          <button
+            @click="follows.removeNote(opportunity.id, note.id)"
+            class="shrink-0 opacity-0 group-hover:opacity-100 text-text-muted hover:text-danger transition-all"
+          >
+            <Trash2 class="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+      <p v-else class="text-xs text-text-muted italic">Sin notas aún.</p>
+
+      <!-- Add note -->
+      <div class="flex gap-2 pt-1">
+        <textarea
+          v-model="newNoteText"
+          rows="2"
+          placeholder="Agregar nota..."
+          class="flex-1 px-2.5 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-xs placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors resize-none"
+          @keydown.ctrl.enter="submitNote"
+          @keydown.meta.enter="submitNote"
+        />
+        <button
+          @click="submitNote"
+          :disabled="!newNoteText.trim() || savingNote"
+          class="shrink-0 self-end px-2.5 py-2 rounded-lg bg-accent text-bg-base text-xs font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+        >
+          <Plus class="w-3.5 h-3.5" />
         </button>
       </div>
-      <div>
-        <label class="block text-xs mb-1"
-          :class="followData.personalNote ? 'text-accent' : 'text-text-muted'"
-        >Nota personal{{ followData.personalNote ? ' ·' : '' }}</label>
-        <textarea
-          :value="followData.personalNote || ''"
-          @blur="handleNoteUpdate"
-          rows="2"
-          class="w-full px-2 py-1.5 rounded border border-border-base bg-bg-surface text-text-primary text-xs resize-none focus:outline-none focus:border-accent"
-          placeholder="Tu nota privada..."
-        />
-      </div>
-      <label class="flex items-center gap-2 text-xs text-text-muted cursor-pointer">
-        <input
-          type="checkbox"
-          :checked="followData.noteShared"
-          @change="handleNoteSharedToggle"
-          class="w-3.5 h-3.5 accent-accent"
-        />
-        Compartir nota con el equipo
-      </label>
+      <p class="text-[10px] text-text-muted">Ctrl+Enter para guardar</p>
     </div>
+
+
   </div>
 </template>

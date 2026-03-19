@@ -3,7 +3,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -17,78 +16,83 @@ service cloud.firestore {
       return isAuthenticated() && userData != null && userData.active != false;
     }
 
+    function getRole() {
+      return getUserData().role;
+    }
+
     function isAdmin() {
-      return isActiveUser() && getUserData().role == 'admin';
+      return isActiveUser() && getRole() == 'admin';
     }
 
-    function isMember() {
-      let role = getUserData().role;
-      return isActiveUser() && (role == 'admin' || role == 'member');
+    function isModerador() {
+      return isActiveUser() && getRole() == 'moderador';
     }
 
-    function isGuest() {
-      return isActiveUser() && getUserData().role == 'guest';
+    function canEdit() {
+      return isAdmin() || isModerador();
     }
 
     // ---- opportunities ----
     match /opportunities/{opportunityId} {
-      allow read: if isActiveUser();
+      // Approved opps: all active users can read
+      allow read: if isActiveUser() && resource.data.status != 'pendiente_aprobacion';
+      // Pending: only admin + moderador can read
+      allow read: if canEdit();
 
-      allow create: if isActiveUser() && (
-        isMember() ||
-        (isGuest() && request.resource.data.status == 'pendiente_aprobacion')
-      );
-
-      allow update: if isActiveUser() && (
-        isMember() ||
-        (isGuest() &&
-          resource.data.addedBy == request.auth.uid &&
-          resource.data.status == 'pendiente_aprobacion')
-      );
-
-      allow delete: if isAdmin();
-
-      // notes subcollection
+      // Notes subcollection: admin + moderador
       match /notes/{noteId} {
-        allow read, write: if isMember();
+        allow read: if canEdit();
+        allow create: if canEdit();
+        allow delete: if isAdmin() ||
+          (canEdit() && resource.data.authorId == request.auth.uid);
       }
-    }
 
-    // ---- users ----
-    match /users/{userId} {
-      // Any authenticated user can read their own document
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      // Create: any active user can propose
+      allow create: if isActiveUser();
 
-      // Admins can read all users
-      allow read: if isAdmin();
+      // Update: admin + moderador can edit any; users can edit their own pending
+      allow update: if canEdit();
+      allow update: if isActiveUser() &&
+        resource.data.addedBy == request.auth.uid &&
+        resource.data.status == 'pendiente_aprobacion';
 
-      // Allow create during onboarding (invite flow) — authenticated user creating their own doc
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-
-      // Admin can update role/active; user can update own lastSeen
-      allow update: if isAdmin() ||
-        (isAuthenticated() && request.auth.uid == userId &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastSeen']));
+      // Delete: admin + moderador
+      allow delete: if canEdit();
     }
 
     // ---- user_follows ----
     match /user_follows/{followId} {
-      // Users can read/write their own follows
       allow read, write: if isAuthenticated() &&
         request.auth.uid == resource.data.userId;
-
       allow create: if isAuthenticated() &&
         request.auth.uid == request.resource.data.userId;
+    }
 
-      // Members/admins can read shared notes
-      allow read: if isMember() && resource.data.noteShared == true;
+    // ---- users ----
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAdmin() ||
+        (isAuthenticated() && request.auth.uid == userId &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['lastSeen', 'displayName', 'org']));
+    }
+
+    // ---- notifications ----
+    match /notifications/{notificationId} {
+      allow read, update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow create: if canEdit();
     }
 
     // ---- invitations ----
     match /invitations/{invitationId} {
       allow create: if isAdmin();
-      allow read: if true; // token is a secret UUID; must be readable before auth exists
-      allow update: if isAuthenticated();
+      allow get: if true; // needed for unauthenticated token validation on invite acceptance
+      allow list: if isAdmin();
+      allow update: if isAdmin() ||
+        (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used']));
       allow delete: if isAdmin();
     }
   }

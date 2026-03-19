@@ -1,13 +1,10 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   opportunity: { type: Object, default: null },
 })
 const emit = defineEmits(['submit', 'cancel'])
-
-const auth = useAuthStore()
 
 function toDateInputValue(val) {
   if (!val) return ''
@@ -22,9 +19,7 @@ const form = ref({
   type: 'fuente',
   description: '',
   url: '',
-  fit: 'Bueno',
   tags: '',
-  featured: false,
   // fuente
   freq: 'semanal',
   // convocatoria
@@ -51,9 +46,7 @@ watch(
       type: opp.type || 'fuente',
       description: opp.description || '',
       url: opp.url || '',
-      fit: opp.fit || 'Bueno',
       tags: Array.isArray(opp.tags) ? opp.tags.join(', ') : (opp.tags || ''),
-      featured: !!opp.featured,
       freq: opp.freq || 'semanal',
       deadline: toDateInputValue(opp.deadline),
       reminderDays: opp.reminderDays ?? 7,
@@ -79,9 +72,7 @@ function handleSubmit() {
     type: form.value.type,
     description: form.value.description.trim(),
     url: form.value.url.trim(),
-    fit: form.value.fit,
     tags,
-    featured: form.value.featured,
   }
 
   if (form.value.type === 'fuente') {
@@ -124,32 +115,19 @@ function handleSubmit() {
       />
     </div>
 
-    <!-- Type + Fit row -->
-    <div class="grid grid-cols-2 gap-3">
-      <div>
-        <label class="block text-xs font-medium text-text-muted mb-1">Tipo *</label>
-        <select
-          v-model="form.type"
-          class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm focus:outline-none focus:border-accent transition-colors"
-        >
-          <option value="fuente">Fuente</option>
-          <option value="convocatoria">Convocatoria</option>
-          <option value="grant">Grant</option>
-          <option value="capacitacion">Capacitación</option>
-          <option value="red">Red</option>
-        </select>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-text-muted mb-1">Relevancia *</label>
-        <select
-          v-model="form.fit"
-          class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm focus:outline-none focus:border-accent transition-colors"
-        >
-          <option value="Alto">Alto</option>
-          <option value="Bueno">Bueno</option>
-          <option value="Selectivo">Selectivo</option>
-        </select>
-      </div>
+    <!-- Type -->
+    <div>
+      <label class="block text-xs font-medium text-text-muted mb-1">Tipo *</label>
+      <select
+        v-model="form.type"
+        class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm focus:outline-none focus:border-accent transition-colors"
+      >
+        <option value="fuente">Fuente</option>
+        <option value="convocatoria">Convocatoria</option>
+        <option value="grant">Grant</option>
+        <option value="capacitacion">Capacitación</option>
+        <option value="red">Red</option>
+      </select>
     </div>
 
     <!-- Description -->
@@ -183,17 +161,6 @@ function handleSubmit() {
         class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
         placeholder="periodismo, digital, AL"
       />
-    </div>
-
-    <!-- Featured (member/admin only) -->
-    <div v-if="auth.isMember" class="flex items-center gap-2">
-      <input
-        id="featured-check"
-        v-model="form.featured"
-        type="checkbox"
-        class="w-4 h-4 rounded border-border-base accent-accent"
-      />
-      <label for="featured-check" class="text-sm text-text-primary cursor-pointer">Destacada</label>
     </div>
 
     <!-- Type-specific fields -->

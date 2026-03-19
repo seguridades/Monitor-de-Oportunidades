@@ -33,7 +33,7 @@ const routes = [
         path: 'pending',
         name: 'Pending',
         component: () => import('@/views/PendingView.vue'),
-        meta: { requiresRole: ['admin', 'member'] },
+        meta: { requiresRole: ['admin', 'moderador'] },
       },
       {
         path: 'admin',

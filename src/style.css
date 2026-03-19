@@ -49,3 +49,78 @@
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
 #app { min-height: 100vh; }
+
+/* ── Sonner toasts ─────────────────────────────────────────────── */
+/* Position fix (Tailwind v4 preflight can override Sonner's CSS) */
+[data-sonner-toaster] { position: fixed !important; }
+[data-sonner-toaster][data-x-position='right']  { right: 24px !important; left: auto !important; }
+[data-sonner-toaster][data-x-position='left']   { left: 24px !important; right: auto !important; }
+[data-sonner-toaster][data-y-position='bottom'] { bottom: 24px !important; top: auto !important; }
+[data-sonner-toaster][data-y-position='top']    { top: 24px !important; bottom: auto !important; }
+
+/* Base toast card */
+[data-sonner-toast] {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10) !important;
+  color: var(--text-primary) !important;
+  font-size: 0.875rem !important;
+  padding: 14px 16px !important;
+  gap: 12px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+}
+
+/* Icon container — colored circle */
+[data-sonner-toast] [data-icon] {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+[data-sonner-toast][data-type='success'] [data-icon] {
+  background: rgba(34, 197, 94, 0.14) !important;
+  color: rgb(34, 197, 94) !important;
+}
+[data-sonner-toast][data-type='error'] [data-icon] {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: rgb(239, 68, 68) !important;
+}
+[data-sonner-toast][data-type='warning'] [data-icon] {
+  background: rgba(245, 158, 11, 0.14) !important;
+  color: rgb(245, 158, 11) !important;
+}
+[data-sonner-toast][data-type='info'] [data-icon] {
+  background: rgba(59, 130, 246, 0.14) !important;
+  color: rgb(59, 130, 246) !important;
+}
+
+/* Title / message text */
+[data-sonner-toast] [data-title] {
+  color: var(--text-primary) !important;
+  font-weight: 500 !important;
+}
+
+/* Close button */
+[data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  left: auto !important;
+  background: var(--bg-surface-2) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: 6px !important;
+  color: var(--text-muted) !important;
+  width: 22px !important;
+  height: 22px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+}

@@ -64,9 +64,9 @@ export const useFollowsStore = defineStore('follows', () => {
       userId,
       opportunityId,
       followedAt: new Date(),
-      personalStatus: 'siguiendo',
-      personalNote: null,
-      noteShared: false,
+      personalStatus: 'nueva',
+      notes: [],
+      starred: false,
     })
   }
 
@@ -86,6 +86,35 @@ export const useFollowsStore = defineStore('follows', () => {
     await updateDoc(doc(db, 'user_follows', id), data)
   }
 
+  async function addNote(opportunityId, text) {
+    const auth = useAuthStore()
+    if (!auth.user || !text.trim()) return
+
+    const follow = getFollow(opportunityId)
+    const currentNotes = follow?.notes ?? []
+    const newNote = {
+      id: crypto.randomUUID(),
+      text: text.trim(),
+      createdAt: new Date().toISOString(),
+    }
+    const id = `${auth.user.uid}_${opportunityId}`
+    await updateDoc(doc(db, 'user_follows', id), {
+      notes: [...currentNotes, newNote],
+    })
+  }
+
+  async function removeNote(opportunityId, noteId) {
+    const auth = useAuthStore()
+    if (!auth.user) return
+
+    const follow = getFollow(opportunityId)
+    const updatedNotes = (follow?.notes ?? []).filter(n => n.id !== noteId)
+    const id = `${auth.user.uid}_${opportunityId}`
+    await updateDoc(doc(db, 'user_follows', id), {
+      notes: updatedNotes,
+    })
+  }
+
   return {
     follows,
     loading,
@@ -96,5 +125,7 @@ export const useFollowsStore = defineStore('follows', () => {
     follow,
     unfollow,
     updateFollow,
+    addNote,
+    removeNote,
   }
 })
