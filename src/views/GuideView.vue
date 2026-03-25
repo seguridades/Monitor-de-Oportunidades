@@ -31,7 +31,7 @@ const permMatrix = [
         <h1 class="text-xl font-semibold text-text-primary">Guía de uso</h1>
         <p class="text-text-muted text-sm mt-1">
           Monitor de Oportunidades centraliza convocatorias, grants, fuentes de financiamiento,
-          capacitaciones y redes relevantes para el trabajo de seguridad integral en América Latina.
+          capacitaciones, eventos y redes relevantes para el trabajo de seguridad integral en América Latina.
         </p>
       </div>
       <button
@@ -110,9 +110,19 @@ const permMatrix = [
               <td class="px-4 py-3 text-text-muted text-xs">Fecha, modalidad, dirigido a</td>
             </tr>
             <tr>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">Evento / Actividad</span></td>
+              <td class="px-4 py-3 text-text-muted">Conferencia, cumbre, encuentro o actividad con fecha definida</td>
+              <td class="px-4 py-3 text-text-muted text-xs">Fecha, modalidad, lugar, dirigido a</td>
+            </tr>
+            <tr>
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs font-medium bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400">Red</span></td>
               <td class="px-4 py-3 text-text-muted">Comunidad, coalición o espacio colaborativo</td>
               <td class="px-4 py-3 text-text-muted text-xs">Cómo unirse</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400">Línea de Ayuda</span></td>
+              <td class="px-4 py-3 text-text-muted">Servicio de asistencia directa ante amenazas o situaciones de riesgo</td>
+              <td class="px-4 py-3 text-text-muted text-xs">Respuesta rápida, cómo acceder, disponibilidad, para quién</td>
             </tr>
           </tbody>
         </table>

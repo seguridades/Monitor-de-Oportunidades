@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText, ArrowRight, Plus, Trash2 } from 'lucide-vue-next'
+import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText, ArrowRight, Plus, Trash2, Archive, ArchiveRestore } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
@@ -24,6 +24,7 @@ const follows = useFollowsStore()
 const showMenu = ref(false)
 const showNotes = ref(false)
 const showDeleteConfirm = ref(false)
+const showDetail = ref(false)
 const newNoteText = ref('')
 const savingNote = ref(false)
 
@@ -62,21 +63,27 @@ const typeBadgeClass = {
   convocatoria: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400',
   grant:        'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
   capacitacion: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400',
+  evento:       'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400',
   red:          'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400',
+  linea_ayuda:  'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400',
 }
 const typeLabel = {
   fuente: 'Fuente',
   convocatoria: 'Convocatoria',
   grant: 'Grant',
   capacitacion: 'Capacitación',
+  evento: 'Evento / Actividad',
   red: 'Red',
+  linea_ayuda: 'Línea de Ayuda',
 }
 const externalLinkLabel = {
   fuente: 'Ver fuente',
   convocatoria: 'Ver convocatoria',
   grant: 'Ver grant',
   capacitacion: 'Registrarse',
+  evento: 'Ver evento',
   red: 'Conectar',
+  linea_ayuda: 'Solicitar ayuda',
 }
 
 
@@ -136,6 +143,21 @@ async function confirmDelete() {
   showDeleteConfirm.value = false
   await opps.deleteOpportunity(props.opportunity.id)
   toast.success('Oportunidad eliminada')
+}
+
+async function toggleArchive() {
+  showMenu.value = false
+  try {
+    if (props.opportunity.archivada) {
+      await opps.unarchiveOpportunity(props.opportunity.id)
+      toast.success('Oportunidad desarchivada')
+    } else {
+      await opps.archiveOpportunity(props.opportunity.id)
+      toast.success('Oportunidad archivada')
+    }
+  } catch {
+    toast.error('Error al archivar')
+  }
 }
 
 function handleEdit() {
@@ -236,13 +258,21 @@ async function handlePersonalStatusChange(value) {
                   </button>
                 </template>
 
-                <!-- General list menu (canEdit only): edit + delete -->
+                <!-- General list menu (canEdit only): edit + archive + delete -->
                 <template v-else>
                   <button
                     @click="handleEdit"
                     class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
                   >
                     Editar
+                  </button>
+                  <button
+                    @click="toggleArchive"
+                    class="w-full text-left px-3 py-1.5 text-xs text-text-muted hover:bg-bg-surface-2 transition-colors flex items-center gap-1.5"
+                  >
+                    <ArchiveRestore v-if="opportunity.archivada" class="w-3.5 h-3.5" />
+                    <Archive v-else class="w-3.5 h-3.5" />
+                    {{ opportunity.archivada ? 'Desarchivar' : 'Archivar' }}
                   </button>
                   <button
                     @click="handleDelete"
@@ -263,9 +293,16 @@ async function handlePersonalStatusChange(value) {
       </h3>
 
       <!-- Description -->
-      <p v-if="opportunity.description" class="text-xs text-text-muted line-clamp-2 mb-2">
+      <p v-if="opportunity.description" class="text-xs text-text-muted line-clamp-2 mb-1">
         {{ opportunity.description }}
       </p>
+      <button
+        v-if="opportunity.description"
+        @click="showDetail = true"
+        class="text-xs text-accent hover:underline mb-2 block"
+      >
+        Ver más
+      </button>
 
       <!-- Type-specific info -->
       <div class="text-xs text-text-muted mb-2 space-y-0.5">
@@ -295,9 +332,23 @@ async function handlePersonalStatusChange(value) {
           <div v-if="opportunity.modalidad" class="capitalize">{{ opportunity.modalidad }}</div>
           <div v-if="opportunity.dirigido_a">Para: {{ opportunity.dirigido_a }}</div>
         </template>
+        <template v-if="opportunity.type === 'evento'">
+          <div v-if="deadlineData">
+            Fecha: <span :class="deadlineData.colorClass">{{ deadlineData.formatted }}</span>
+          </div>
+          <div v-if="opportunity.modalidad" class="capitalize">{{ opportunity.modalidad }}</div>
+          <div v-if="opportunity.lugar">📍 {{ opportunity.lugar }}</div>
+          <div v-if="opportunity.dirigido_a">Para: {{ opportunity.dirigido_a }}</div>
+        </template>
         <div v-if="opportunity.type === 'red' && opportunity.como_unirse">
           {{ opportunity.como_unirse }}
         </div>
+        <template v-if="opportunity.type === 'linea_ayuda'">
+          <div v-if="opportunity.respuesta_rapida" class="text-rose-600 dark:text-rose-400 font-medium">⚡ Respuesta rápida</div>
+          <div v-if="opportunity.como_acceder">Acceso: {{ opportunity.como_acceder }}</div>
+          <div v-if="opportunity.disponibilidad">Disponibilidad: {{ opportunity.disponibilidad }}</div>
+          <div v-if="opportunity.para_quien">Para: {{ opportunity.para_quien }}</div>
+        </template>
       </div>
 
       <!-- Tags -->
@@ -408,4 +459,83 @@ async function handlePersonalStatusChange(value) {
 
 
   </div>
+
+  <!-- Detail modal -->
+  <Teleport to="body">
+    <div v-if="showDetail" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showDetail = false" />
+      <div class="relative bg-bg-surface border border-border-base rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+        <div class="p-6 space-y-4">
+          <!-- Header -->
+          <div class="flex items-start gap-3">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap mb-2">
+                <span
+                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                  :class="typeBadgeClass[opportunity.type] ?? 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300'"
+                >
+                  {{ typeLabel[opportunity.type] ?? opportunity.type }}
+                </span>
+                <OpportunityStatusBadge :status="opportunity.status" />
+              </div>
+              <h2 class="text-base font-semibold text-text-primary leading-snug">{{ opportunity.title }}</h2>
+            </div>
+            <button @click="showDetail = false" class="shrink-0 text-text-muted hover:text-text-primary p-1 rounded transition-colors">
+              ✕
+            </button>
+          </div>
+
+          <!-- Description -->
+          <p v-if="opportunity.description" class="text-sm text-text-muted leading-relaxed">
+            {{ opportunity.description }}
+          </p>
+
+          <!-- Type-specific fields -->
+          <div class="text-sm text-text-muted space-y-1.5">
+            <div v-if="opportunity.type === 'fuente' && opportunity.freq">
+              Frecuencia: <span class="text-text-primary capitalize">{{ opportunity.freq }}</span>
+            </div>
+            <template v-if="opportunity.type === 'convocatoria' || opportunity.type === 'grant'">
+              <div v-if="opportunity.monto">Monto: <span class="text-text-primary font-medium">{{ opportunity.monto }}</span></div>
+              <div v-if="opportunity.quien_puede_aplicar">Aplica: <span class="text-text-primary">{{ opportunity.quien_puede_aplicar }}</span></div>
+              <div v-if="deadlineData">Cierre: <span :class="deadlineData.colorClass">{{ deadlineData.formatted }} ({{ deadlineData.urgency }})</span></div>
+              <div v-else-if="opportunity.type === 'grant'" class="text-accent">Fondo abierto</div>
+            </template>
+            <template v-if="opportunity.type === 'capacitacion' || opportunity.type === 'evento'">
+              <div v-if="deadlineData">Fecha: <span :class="deadlineData.colorClass">{{ deadlineData.formatted }}</span></div>
+              <div v-if="opportunity.modalidad">Modalidad: <span class="text-text-primary capitalize">{{ opportunity.modalidad }}</span></div>
+              <div v-if="opportunity.lugar">Lugar: <span class="text-text-primary">{{ opportunity.lugar }}</span></div>
+              <div v-if="opportunity.dirigido_a">Para: <span class="text-text-primary">{{ opportunity.dirigido_a }}</span></div>
+            </template>
+            <div v-if="opportunity.type === 'red' && opportunity.como_unirse">
+              Cómo unirse: <span class="text-text-primary">{{ opportunity.como_unirse }}</span>
+            </div>
+            <template v-if="opportunity.type === 'linea_ayuda'">
+              <div v-if="opportunity.respuesta_rapida" class="text-rose-600 dark:text-rose-400 font-medium">⚡ Respuesta rápida</div>
+              <div v-if="opportunity.como_acceder">Acceso: <span class="text-text-primary">{{ opportunity.como_acceder }}</span></div>
+              <div v-if="opportunity.disponibilidad">Disponibilidad: <span class="text-text-primary">{{ opportunity.disponibilidad }}</span></div>
+              <div v-if="opportunity.para_quien">Para: <span class="text-text-primary">{{ opportunity.para_quien }}</span></div>
+            </template>
+          </div>
+
+          <!-- Tags -->
+          <div v-if="opportunity.tags?.length" class="flex flex-wrap gap-1.5">
+            <AppTag v-for="tag in opportunity.tags" :key="tag" :label="tag" />
+          </div>
+
+          <!-- URL -->
+          <a
+            v-if="opportunity.url"
+            :href="opportunity.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1.5 text-sm text-accent hover:underline"
+          >
+            <ExternalLink class="w-4 h-4" />
+            {{ externalLinkLabel[opportunity.type] ?? 'Ver enlace' }}
+          </a>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>

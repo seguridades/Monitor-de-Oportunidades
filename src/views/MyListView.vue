@@ -26,7 +26,9 @@ const typeOptions = [
   { value: 'grant', label: 'Grants' },
   { value: 'fuente', label: 'Fuentes' },
   { value: 'capacitacion', label: 'Capacitaciones' },
+  { value: 'evento', label: 'Eventos / Actividades' },
   { value: 'red', label: 'Redes' },
+  { value: 'linea_ayuda', label: 'Líneas de Ayuda' },
 ]
 
 const followedOpportunities = computed(() => {
@@ -83,7 +85,9 @@ const groupOrder = [
   { type: 'grant', label: 'Grants' },
   { type: 'fuente', label: 'Fuentes' },
   { type: 'capacitacion', label: 'Capacitaciones' },
+  { type: 'evento', label: 'Eventos / Actividades' },
   { type: 'red', label: 'Redes' },
+  { type: 'linea_ayuda', label: 'Líneas de Ayuda' },
 ]
 
 const showGroups = computed(() => !typeFilter.value)
@@ -101,7 +105,9 @@ const typeLabel = {
   convocatoria: 'Convocatoria',
   grant: 'Grant',
   capacitacion: 'Capacitación',
+  evento: 'Evento / Actividad',
   red: 'Red',
+  linea_ayuda: 'Línea de Ayuda',
 }
 
 function exportCSV() {

@@ -23,7 +23,7 @@ const steps = computed(() => {
     {
       icon: Search,
       title: 'Explora las oportunidades',
-      body: 'En la vista principal encontrarás todas las oportunidades agrupadas por tipo: Fuentes, Convocatorias, Grants, Capacitaciones y Redes.',
+      body: 'En la vista principal encontrarás todas las oportunidades agrupadas por tipo: Fuentes, Convocatorias, Grants, Capacitaciones, Eventos / Actividades y Redes.',
       bullets: [
         'Usa los filtros del panel izquierdo para acotar por tipo o estado.',
         'Busca por nombre, descripción o etiqueta en el buscador.',

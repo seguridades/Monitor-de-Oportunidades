@@ -22,6 +22,7 @@ const searchQuery = ref('')
 const tagFilter = ref('')
 const hideFollowed = ref(false)
 const showFilterPanel = ref(false)
+const showArchived = ref(false)
 
 // Modal state
 const showModal = ref(false)
@@ -33,7 +34,9 @@ const typeOptions = [
   { value: 'convocatoria', label: 'Convocatorias' },
   { value: 'grant', label: 'Grants' },
   { value: 'capacitacion', label: 'Capacitaciones' },
+  { value: 'evento', label: 'Eventos / Actividades' },
   { value: 'red', label: 'Redes' },
+  { value: 'linea_ayuda', label: 'Líneas de Ayuda' },
 ]
 
 const statusOptions = [
@@ -49,7 +52,9 @@ const groupOrder = [
   { type: 'grant', label: 'Grants' },
   { type: 'fuente', label: 'Fuentes' },
   { type: 'capacitacion', label: 'Capacitaciones' },
+  { type: 'evento', label: 'Eventos / Actividades' },
   { type: 'red', label: 'Redes' },
+  { type: 'linea_ayuda', label: 'Líneas de Ayuda' },
 ]
 
 // Count helpers
@@ -363,6 +368,27 @@ async function handleFormSubmit(data) {
         <div v-else class="grid gap-3 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           <OpportunityCard
             v-for="opp in filteredOpportunities"
+            :key="opp.id"
+            :opportunity="opp"
+            @edit="openEdit"
+            @filter-tag="handleFilterTag"
+          />
+        </div>
+      </div>
+
+      <!-- Archived section (canEdit only) -->
+      <div v-if="auth.canEdit && opps.archived.length > 0" class="mt-8">
+        <button
+          @click="showArchived = !showArchived"
+          class="flex items-center gap-2 text-xs text-text-muted hover:text-text-primary transition-colors mb-3"
+        >
+          <span class="flex-1 h-px bg-border-base" />
+          <span>{{ showArchived ? '▾' : '▸' }} Archivadas ({{ opps.archived.length }})</span>
+          <span class="flex-1 h-px bg-border-base" />
+        </button>
+        <div v-if="showArchived" class="grid gap-3 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 opacity-60">
+          <OpportunityCard
+            v-for="opp in opps.archived"
             :key="opp.id"
             :opportunity="opp"
             @edit="openEdit"

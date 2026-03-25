@@ -4,6 +4,7 @@ import { db } from '@/firebase/config'
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   query, where, orderBy, onSnapshot, serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
@@ -14,7 +15,11 @@ export const useOpportunitiesStore = defineStore('opportunities', () => {
   let unsubscribe = null
 
   const approved = computed(() =>
-    allOpportunities.value.filter(o => o.status !== 'pendiente_aprobacion')
+    allOpportunities.value.filter(o => o.status !== 'pendiente_aprobacion' && !o.archivada)
+  )
+
+  const archived = computed(() =>
+    allOpportunities.value.filter(o => o.status !== 'pendiente_aprobacion' && o.archivada)
   )
 
   const pending = computed(() =>
@@ -97,6 +102,34 @@ export const useOpportunitiesStore = defineStore('opportunities', () => {
     }
   }
 
+  async function archiveOpportunity(id) {
+    await updateDoc(doc(db, 'opportunities', id), { archivada: true, updatedAt: serverTimestamp() })
+  }
+
+  async function unarchiveOpportunity(id) {
+    await updateDoc(doc(db, 'opportunities', id), { archivada: false, updatedAt: serverTimestamp() })
+  }
+
+  async function deleteBatch(ids) {
+    const batch = writeBatch(db)
+    ids.forEach(id => batch.delete(doc(db, 'opportunities', id)))
+    await batch.commit()
+  }
+
+  async function approveBatch(ids) {
+    const auth = useAuthStore()
+    const batch = writeBatch(db)
+    const now = serverTimestamp()
+    ids.forEach(id => {
+      batch.update(doc(db, 'opportunities', id), {
+        status: 'nueva',
+        approvedBy: auth.user?.uid ?? null,
+        updatedAt: now,
+      })
+    })
+    await batch.commit()
+  }
+
   async function changeStatus(id, status) {
     await updateDoc(doc(db, 'opportunities', id), {
       status,
@@ -106,10 +139,11 @@ export const useOpportunitiesStore = defineStore('opportunities', () => {
 
   return {
     allOpportunities, loading,
-    approved, pending,
+    approved, archived, pending,
     subscribe, stopSubscription,
     addOpportunity, updateOpportunity, deleteOpportunity,
-    approveOpportunity, rejectOpportunity,
+    approveOpportunity, approveBatch, deleteBatch, rejectOpportunity,
+    archiveOpportunity, unarchiveOpportunity,
     changeStatus,
   }
 })
