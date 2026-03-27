@@ -4,6 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
+import { useReportsStore } from '@/stores/reports'
 import { db } from '@/firebase/config'
 import { doc, updateDoc } from 'firebase/firestore'
 import { getAuth, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth'
@@ -13,6 +14,7 @@ const router = useRouter()
 const ui = useUIStore()
 const auth = useAuthStore()
 const opps = useOpportunitiesStore()
+const reportsStore = useReportsStore()
 
 const showEditProfile = ref(false)
 const editProfile = ref({ displayName: '', org: '' })
@@ -120,6 +122,19 @@ const roleLabelMap = {
         Pendientes
         <span v-if="opps.pending.length > 0" class="ml-auto text-xs bg-amber/20 text-amber px-1.5 py-0.5 rounded-full font-medium">
           {{ opps.pending.length }}
+        </span>
+      </RouterLink>
+      <RouterLink
+        v-if="auth.canApprove"
+        to="/reports"
+        class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+        :class="$route.name === 'Reports'
+          ? 'bg-bg-surface-2 text-text-primary font-medium'
+          : 'text-text-muted hover:text-text-primary hover:bg-bg-surface-2'"
+      >
+        Reportes
+        <span v-if="reportsStore.pending.length > 0" class="ml-auto text-xs bg-danger/15 text-danger px-1.5 py-0.5 rounded-full font-medium">
+          {{ reportsStore.pending.length }}
         </span>
       </RouterLink>
       <RouterLink

@@ -159,7 +159,7 @@ async function confirmRevoke() {
 }
 
 // ---- Bulk Import ----
-const VALID_TYPES = ['fuente', 'convocatoria', 'grant', 'capacitacion', 'evento', 'red', 'linea_ayuda']
+const VALID_TYPES = ['fuente', 'convocatoria', 'grant', 'capacitacion', 'evento', 'red', 'linea_ayuda', 'beca']
 
 const importJson = ref('')
 const importBatch = ref('')
@@ -263,6 +263,12 @@ function parseImport() {
       if (item.disponibilidad) entry.disponibilidad = String(item.disponibilidad).trim()
       if (item.para_quien) entry.para_quien = String(item.para_quien).trim()
     }
+    if (item.type === 'beca') {
+      entry.deadline = item.deadline ? new Date(item.deadline) : null
+      if (item.monto) entry.monto = String(item.monto).trim()
+      if (item.duracion) entry.duracion = String(item.duracion).trim()
+      if (item.quien_puede_aplicar) entry.quien_puede_aplicar = String(item.quien_puede_aplicar).trim()
+    }
 
     parsed.push(entry)
   })
@@ -281,7 +287,7 @@ async function runImport() {
     const col = collection(db, 'opportunities')
     const now = serverTimestamp()
 
-    const status = importBatch.value.trim() ? 'pendiente_aprobacion' : 'nueva'
+    const status = 'pendiente_aprobacion'
     const batchLabel = importBatch.value.trim() || null
 
     importParsed.value.forEach(entry => {
@@ -576,7 +582,7 @@ onMounted(() => {
         <!-- Fields reference -->
         <div class="p-3 bg-bg-surface-2 rounded-lg border border-border-base text-xs text-text-muted space-y-1">
           <p class="font-medium text-text-primary mb-1.5">Campos disponibles</p>
-          <p><span class="text-text-primary font-medium">Comunes:</span> title* · type* (fuente|convocatoria|grant|capacitacion|evento|red) · description · url · tags (array o string separado por coma)</p>
+          <p><span class="text-text-primary font-medium">Comunes:</span> title* · type* (fuente|convocatoria|grant|capacitacion|evento|red|linea_ayuda|beca) · description · url · tags (array o string separado por coma)</p>
           <p><span class="text-text-primary font-medium">fuente:</span> freq (semanal|mensual)</p>
           <p><span class="text-text-primary font-medium">convocatoria:</span> deadline (YYYY-MM-DD) · reminderDays · monto</p>
           <p><span class="text-text-primary font-medium">grant:</span> deadline · monto · quien_puede_aplicar</p>
@@ -584,6 +590,7 @@ onMounted(() => {
           <p><span class="text-text-primary font-medium">evento:</span> fecha (YYYY-MM-DD) · modalidad (virtual|presencial|hibrida) · lugar · dirigido_a</p>
           <p><span class="text-text-primary font-medium">red:</span> como_unirse</p>
           <p><span class="text-text-primary font-medium">linea_ayuda:</span> respuesta_rapida (true/false) · como_acceder · disponibilidad · para_quien</p>
+          <p><span class="text-text-primary font-medium">beca:</span> deadline (YYYY-MM-DD) · monto · duracion · quien_puede_aplicar</p>
         </div>
 
         <!-- Batch source -->
@@ -597,10 +604,8 @@ onMounted(() => {
             placeholder="Ej: Excel de Fernanda, marzo 2026"
             class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
           />
-          <p class="mt-1 text-xs" :class="importBatch.trim() ? 'text-amber' : 'text-text-muted'">
-            {{ importBatch.trim()
-              ? '⚠ Se importarán como pendientes de aprobación — visibles solo para moderadores y admins hasta que se aprueben.'
-              : 'Si se deja vacío, las oportunidades se publican directamente.' }}
+          <p class="mt-1 text-xs text-text-muted">
+            Opcional. Todas las importaciones van a pendientes de aprobación.
           </p>
         </div>
 

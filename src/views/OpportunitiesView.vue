@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { toast } from 'vue-sonner'
-import { Plus, Search } from 'lucide-vue-next'
+import { Plus, Search, X } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
 import { useFollowsStore } from '@/stores/follows'
@@ -37,6 +37,7 @@ const typeOptions = [
   { value: 'evento', label: 'Eventos / Actividades' },
   { value: 'red', label: 'Redes' },
   { value: 'linea_ayuda', label: 'Líneas de Ayuda' },
+  { value: 'beca', label: 'Becas / Fellowships' },
 ]
 
 const statusOptions = [
@@ -55,6 +56,7 @@ const groupOrder = [
   { type: 'evento', label: 'Eventos / Actividades' },
   { type: 'red', label: 'Redes' },
   { type: 'linea_ayuda', label: 'Líneas de Ayuda' },
+  { type: 'beca', label: 'Becas / Fellowships' },
 ]
 
 // Count helpers
@@ -287,9 +289,26 @@ async function handleFormSubmit(data) {
             v-model="searchQuery"
             type="text"
             placeholder="Buscar..."
-            class="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border-base bg-bg-surface text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+            class="w-full pl-8 py-1.5 rounded-lg border border-border-base bg-bg-surface text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+            :class="searchQuery ? 'pr-7' : 'pr-3'"
           />
+          <button
+            v-if="searchQuery"
+            @click="searchQuery = ''"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+          >
+            <X class="w-3.5 h-3.5" />
+          </button>
         </div>
+
+        <!-- Clear all filters (when active and search not the only thing) -->
+        <button
+          v-if="hasActiveFilters"
+          @click="clearFilters"
+          class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border-base text-xs text-text-muted hover:text-danger hover:border-danger/40 transition-colors"
+        >
+          <X class="w-3 h-3" /> Limpiar
+        </button>
 
         <!-- Active tag pill -->
         <div

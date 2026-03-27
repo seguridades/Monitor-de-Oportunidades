@@ -5,7 +5,7 @@ import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
 import { useNotificationsStore } from '@/stores/notifications'
-import { Menu, Sun, Moon, Bell } from 'lucide-vue-next'
+import { Menu, Sun, Moon, Bell, X } from 'lucide-vue-next'
 
 const ui = useUIStore()
 const auth = useAuthStore()
@@ -63,7 +63,7 @@ function formatDate(ts) {
           v-if="notifs.unreadCount > 0"
           class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent text-bg-base text-[10px] font-bold flex items-center justify-center leading-none"
         >
-          {{ notifs.unreadCount > 9 ? '9+' : notifs.unreadCount }}
+          {{ notifs.unreadCount }}
         </span>
       </button>
 
@@ -78,13 +78,22 @@ function formatDate(ts) {
       >
         <div class="px-4 py-3 border-b border-border-base flex items-center justify-between">
           <p class="text-sm font-semibold text-text-primary">Notificaciones</p>
-          <button
-            v-if="notifs.notifications.length > 0"
-            @click="notifs.markAllRead()"
-            class="text-xs text-accent hover:underline"
-          >
-            Marcar todas leídas
-          </button>
+          <div class="flex items-center gap-3">
+            <button
+              v-if="notifs.unreadCount > 0"
+              @click="notifs.markAllRead()"
+              class="text-xs text-accent hover:underline"
+            >
+              Marcar leídas
+            </button>
+            <button
+              v-if="notifs.notifications.some(n => n.read)"
+              @click="notifs.deleteAllRead()"
+              class="text-xs text-text-muted hover:text-danger hover:underline"
+            >
+              Limpiar leídas
+            </button>
+          </div>
         </div>
 
         <div class="max-h-80 overflow-y-auto">
@@ -98,21 +107,33 @@ function formatDate(ts) {
             <div
               v-for="n in notifs.notifications"
               :key="n.id"
-              class="px-4 py-3 border-b border-border-base last:border-0 flex items-start gap-3 transition-colors"
-              :class="n.read ? 'bg-bg-surface' : 'bg-accent/5'"
+              class="group px-4 py-3 border-b border-border-base last:border-0 flex items-start gap-3 transition-colors"
+              :class="n.read
+                ? 'bg-bg-surface'
+                : 'bg-accent/8 border-l-2 border-l-accent'"
             >
               <span
                 class="mt-0.5 shrink-0 w-2 h-2 rounded-full"
-                :class="n.type === 'approved' ? 'bg-green-500' : n.type === 'pending' ? 'bg-amber-400' : 'bg-danger'"
+                :class="[
+                  n.type === 'approved' ? 'bg-green-500' : n.type === 'pending' ? 'bg-amber-400' : 'bg-danger',
+                  n.read ? 'opacity-40' : ''
+                ]"
               />
               <div class="flex-1 min-w-0">
-                <p class="text-xs text-text-primary leading-snug">
+                <p class="text-xs leading-snug" :class="n.read ? 'text-text-muted' : 'text-text-primary'">
                   <span v-if="n.type === 'approved'">Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue aprobada y está en el catálogo.</span>
                   <span v-else-if="n.type === 'pending'">Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue recibida y está pendiente de revisión.</span>
                   <span v-else>Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue rechazada.</span>
                 </p>
                 <p class="text-xs text-text-muted mt-0.5">{{ formatDate(n.createdAt) }}</p>
               </div>
+              <button
+                @click="notifs.deleteNotification(n.id)"
+                class="shrink-0 mt-0.5 p-0.5 rounded text-text-muted hover:text-danger transition-colors opacity-0 group-hover:opacity-100"
+                aria-label="Eliminar notificación"
+              >
+                <X class="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>

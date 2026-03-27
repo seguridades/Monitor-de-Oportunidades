@@ -9,32 +9,52 @@ import { useFollowsStore } from '@/stores/follows'
 import { useAuthStore } from '@/stores/auth'
 import { useUIStore } from '@/stores/ui'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useReportsStore } from '@/stores/reports'
 
 const auth = useAuthStore()
 const opps = useOpportunitiesStore()
 const follows = useFollowsStore()
 const ui = useUIStore()
 const notifs = useNotificationsStore()
+const reportsStore = useReportsStore()
 
 const showWelcome = ref(false)
+const isOnline = ref(navigator.onLine)
+
+function handleOnline() { isOnline.value = true }
+function handleOffline() { isOnline.value = false }
 
 onMounted(() => {
   opps.subscribe()
   follows.subscribe()
   notifs.subscribe()
+  if (auth.canApprove) reportsStore.subscribe()
   if (!localStorage.getItem('onboarding_done')) {
     showWelcome.value = true
   }
+  window.addEventListener('online', handleOnline)
+  window.addEventListener('offline', handleOffline)
 })
 onUnmounted(() => {
   opps.stopSubscription()
   follows.stopSubscription()
   notifs.stopSubscription()
+  reportsStore.stopSubscription()
+  window.removeEventListener('online', handleOnline)
+  window.removeEventListener('offline', handleOffline)
 })
 </script>
 
 <template>
   <div class="flex h-screen bg-bg-base text-text-primary overflow-hidden">
+    <!-- Offline banner -->
+    <div
+      v-if="!isOnline"
+      class="fixed top-0 inset-x-0 z-50 bg-amber text-bg-base text-xs font-medium text-center py-1.5 px-4"
+    >
+      Sin conexión — los cambios no se guardarán hasta recuperar internet.
+    </div>
+
     <!-- Mobile backdrop -->
     <div
       v-if="ui.sidebarOpen"

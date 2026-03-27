@@ -15,6 +15,8 @@ const permMatrix = [
   { action: 'Ver listado global',                invitado: '✓',               moderador: '✓',                    admin: '✓' },
   { action: 'Sugerir oportunidades',             invitado: 'Queda pendiente', moderador: 'Aprobada directamente', admin: 'Aprobada directamente' },
   { action: 'Mi Lista (notas, estado, destacar)',invitado: '✓',               moderador: '✓',                    admin: '✓' },
+  { action: 'Reportar oportunidad',              invitado: '✓',               moderador: '✓',                    admin: '✓' },
+  { action: 'Ver y gestionar reportes',          invitado: '-',               moderador: '✓',                    admin: '✓' },
   { action: 'Aprobar / rechazar sugerencias',    invitado: '-',               moderador: '✓',                    admin: '✓' },
   { action: 'Agregar / editar oportunidades',    invitado: '-',               moderador: '✓',                    admin: '✓' },
   { action: 'Eliminar oportunidades',            invitado: '-',               moderador: '✓',                    admin: '✓' },
@@ -52,19 +54,25 @@ const permMatrix = [
           <p class="text-sm font-medium text-text-primary mb-1">Todas las oportunidades</p>
           <p class="text-sm text-text-muted">
             Vista principal. Muestra todas las oportunidades aprobadas agrupadas por tipo.
-            Filtra por tipo o estado, busca por texto o etiqueta.
+            Filtra por tipo o estado, busca por texto o etiqueta en tiempo real. Desde cada tarjeta podés copiar el enlace externo o reportar información incorrecta.
           </p>
         </div>
         <div class="bg-bg-surface border border-border-base rounded-xl p-4">
           <p class="text-sm font-medium text-text-primary mb-1">Mi Lista</p>
           <p class="text-sm text-text-muted">
-            Oportunidades que marcaste con <strong>+ Seguir</strong>. Desde aquí puedes gestionar tu estado personal, agregar notas privadas y marcar como destacada cada oportunidad. Nadie más lo ve desde la app — aunque los datos se guardan en texto plano en la base de datos, por lo que quien tenga acceso directo a ella podría leerlos.
+            Oportunidades que marcaste con <strong>+ Seguir</strong>. Desde aquí puedes gestionar tu estado personal, agregar notas privadas y marcar como destacada cada oportunidad. También podés exportar tu lista a CSV o agregar deadlines a tu calendario. Nadie más lo ve desde la app — aunque los datos se guardan en texto plano en la base de datos, por lo que quien tenga acceso directo a ella podría leerlos.
           </p>
         </div>
         <div v-if="auth.canApprove" class="bg-bg-surface border border-border-base rounded-xl p-4">
           <p class="text-sm font-medium text-text-primary mb-1">Pendientes</p>
           <p class="text-sm text-text-muted">
-            Propuestas enviadas por invitados esperando revisión. Podés aprobarlas (se publican en el catálogo) o rechazarlas.
+            Propuestas enviadas por invitados esperando revisión. Podés aprobarlas (se publican en el catálogo), rechazarlas o marcarlas para revisar después.
+          </p>
+        </div>
+        <div v-if="auth.canApprove" class="bg-bg-surface border border-border-base rounded-xl p-4">
+          <p class="text-sm font-medium text-text-primary mb-1">Reportes</p>
+          <p class="text-sm text-text-muted">
+            Reportes enviados por usuarios sobre oportunidades con información incorrecta o desactualizada. Desde aquí podés editar, archivar o eliminar la oportunidad reportada y marcar el reporte como resuelto.
           </p>
         </div>
         <div v-if="auth.isAdmin" class="bg-bg-surface border border-border-base rounded-xl p-4">
@@ -123,6 +131,11 @@ const permMatrix = [
               <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400">Línea de Ayuda</span></td>
               <td class="px-4 py-3 text-text-muted">Servicio de asistencia directa ante amenazas o situaciones de riesgo</td>
               <td class="px-4 py-3 text-text-muted text-xs">Respuesta rápida, cómo acceder, disponibilidad, para quién</td>
+            </tr>
+            <tr>
+              <td class="px-4 py-3"><span class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400">Beca / Fellowship</span></td>
+              <td class="px-4 py-3 text-text-muted">Programa de beca, fellowship o residencia con financiamiento y duración definida</td>
+              <td class="px-4 py-3 text-text-muted text-xs">Fecha límite, estipendio/monto, duración, quién puede aplicar</td>
             </tr>
           </tbody>
         </table>

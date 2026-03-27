@@ -1,10 +1,73 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
+import { useOpportunitiesStore } from '@/stores/opportunities'
 
 const props = defineProps({
   opportunity: { type: Object, default: null },
 })
 const emit = defineEmits(['submit', 'cancel'])
+
+const opps = useOpportunitiesStore()
+
+// All existing tags from catalog, deduplicated and sorted
+const existingTags = computed(() => {
+  const set = new Set()
+  opps.allOpportunities.forEach(o => {
+    if (Array.isArray(o.tags)) o.tags.forEach(t => t && set.add(t.trim()))
+  })
+  return [...set].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+})
+
+// Tag input state
+const tagInput = ref('')
+const showSuggestions = ref(false)
+const tagInputEl = ref(null)
+const suggestionsPos = ref({ top: 0, left: 0, width: 0 })
+
+function updateSuggestionsPos() {
+  if (!tagInputEl.value) return
+  const rect = tagInputEl.value.getBoundingClientRect()
+  suggestionsPos.value = { top: rect.bottom + 4, left: rect.left, width: rect.width }
+}
+
+const tagSuggestions = computed(() => {
+  const q = tagInput.value.trim().toLowerCase()
+  if (!q) return []
+  return existingTags.value.filter(t =>
+    t.toLowerCase().includes(q) && !form.value.tags.includes(t)
+  ).slice(0, 8)
+})
+
+function addTag(tag) {
+  const t = tag.trim()
+  if (!t || form.value.tags.includes(t)) return
+  form.value.tags = [...form.value.tags, t]
+  tagInput.value = ''
+  showSuggestions.value = false
+}
+
+function addTagFromInput() {
+  if (tagInput.value.trim()) addTag(tagInput.value)
+}
+
+function removeTag(tag) {
+  form.value.tags = form.value.tags.filter(t => t !== tag)
+}
+
+function hideTagSuggestions() {
+  setTimeout(() => { showSuggestions.value = false }, 150)
+}
+
+function onTagKeydown(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault()
+    addTagFromInput()
+  } else if (e.key === 'Backspace' && !tagInput.value && form.value.tags.length) {
+    form.value.tags = form.value.tags.slice(0, -1)
+  } else if (e.key === 'Escape') {
+    showSuggestions.value = false
+  }
+}
 
 function toDateInputValue(val) {
   if (!val) return ''
@@ -19,7 +82,7 @@ const form = ref({
   type: 'fuente',
   description: '',
   url: '',
-  tags: '',
+  tags: [],
   // fuente
   freq: 'semanal',
   // convocatoria
@@ -41,6 +104,8 @@ const form = ref({
   como_acceder: '',
   disponibilidad: '',
   para_quien: '',
+  // beca
+  duracion: '',
 })
 
 // Populate if editing
@@ -53,7 +118,7 @@ watch(
       type: opp.type || 'fuente',
       description: opp.description || '',
       url: opp.url || '',
-      tags: Array.isArray(opp.tags) ? opp.tags.join(', ') : (opp.tags || ''),
+      tags: Array.isArray(opp.tags) ? [...opp.tags] : [],
       freq: opp.freq || 'semanal',
       deadline: toDateInputValue(opp.deadline),
       reminderDays: opp.reminderDays ?? 7,
@@ -68,6 +133,7 @@ watch(
       como_acceder: opp.como_acceder || '',
       disponibilidad: opp.disponibilidad || '',
       para_quien: opp.para_quien || '',
+      duracion: opp.duracion || '',
     }
   },
   { immediate: true }
@@ -84,17 +150,15 @@ const fechaIsPast = computed(() =>
 )
 
 function handleSubmit() {
-  const tags = form.value.tags
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean)
+  // Flush any pending tag input
+  if (tagInput.value.trim()) addTag(tagInput.value)
 
   const data = {
     title: form.value.title.trim(),
     type: form.value.type,
     description: form.value.description.trim(),
     url: form.value.url.trim(),
-    tags,
+    tags: form.value.tags,
   }
 
   if (form.value.type === 'fuente') {
@@ -130,6 +194,12 @@ function handleSubmit() {
     if (form.value.disponibilidad) data.disponibilidad = form.value.disponibilidad.trim()
     if (form.value.para_quien) data.para_quien = form.value.para_quien.trim()
   }
+  if (form.value.type === 'beca') {
+    data.deadline = form.value.deadline ? new Date(form.value.deadline + 'T00:00:00') : null
+    if (form.value.monto) data.monto = form.value.monto.trim()
+    if (form.value.duracion) data.duracion = form.value.duracion.trim()
+    if (form.value.quien_puede_aplicar) data.quien_puede_aplicar = form.value.quien_puede_aplicar.trim()
+  }
 
   emit('submit', data)
 }
@@ -163,6 +233,7 @@ function handleSubmit() {
         <option value="evento">Evento / Actividad</option>
         <option value="red">Red</option>
         <option value="linea_ayuda">Línea de Ayuda</option>
+        <option value="beca">Beca / Fellowship</option>
       </select>
     </div>
 
@@ -190,13 +261,34 @@ function handleSubmit() {
 
     <!-- Tags -->
     <div>
-      <label class="block text-xs font-medium text-text-muted mb-1">Etiquetas (separadas por coma)</label>
-      <input
-        v-model="form.tags"
-        type="text"
-        class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
-        placeholder="periodismo, digital, AL"
-      />
+      <label class="block text-xs font-medium text-text-muted mb-1">Etiquetas</label>
+      <div
+        class="flex flex-wrap gap-1.5 px-2.5 py-2 rounded-lg border border-border-base bg-bg-base focus-within:border-accent transition-colors min-h-[40px] cursor-text"
+        @click="tagInputEl?.focus()"
+      >
+        <span
+          v-for="tag in form.tags"
+          :key="tag"
+          class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-accent/10 text-accent border border-accent/20"
+        >
+          {{ tag }}
+          <button type="button" @click.stop="removeTag(tag)" class="hover:text-danger leading-none">×</button>
+        </span>
+        <div class="flex-1 min-w-24">
+          <input
+            ref="tagInputEl"
+            v-model="tagInput"
+            type="text"
+            class="w-full bg-transparent text-text-primary text-sm placeholder:text-text-muted focus:outline-none"
+            placeholder="Agregar etiqueta..."
+            @keydown="onTagKeydown"
+            @focus="() => { updateSuggestionsPos(); showSuggestions = true }"
+            @input="() => { updateSuggestionsPos(); showSuggestions = true }"
+            @blur="hideTagSuggestions"
+          />
+        </div>
+      </div>
+      <p class="mt-1 text-xs text-text-muted">Enter o coma para agregar · Backspace para borrar el último</p>
     </div>
 
     <!-- Type-specific fields -->
@@ -408,6 +500,49 @@ function handleSubmit() {
       </div>
     </template>
 
+    <!-- beca -->
+    <template v-if="form.type === 'beca'">
+      <div>
+        <label class="block text-xs font-medium text-text-muted mb-1">Fecha límite de aplicación <span class="font-normal">(opcional)</span></label>
+        <input
+          v-model="form.deadline"
+          type="date"
+          class="w-full px-3 py-2 rounded-lg border text-sm focus:outline-none transition-colors"
+          :class="deadlineIsPast
+            ? 'border-amber bg-bg-base text-text-primary focus:border-amber'
+            : 'border-border-base bg-bg-base text-text-primary focus:border-accent'"
+        />
+        <p v-if="deadlineIsPast" class="mt-1 text-xs text-amber">⚠ Esta fecha ya pasó.</p>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-text-muted mb-1">Estipendio / Monto <span class="font-normal">(opcional)</span></label>
+        <input
+          v-model="form.monto"
+          type="text"
+          class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+          placeholder="Ej: USD 2,000/mes, cobertura total..."
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-text-muted mb-1">Duración <span class="font-normal">(opcional)</span></label>
+        <input
+          v-model="form.duracion"
+          type="text"
+          class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+          placeholder="Ej: 6 meses, 1 año..."
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-text-muted mb-1">¿Quién puede aplicar? <span class="font-normal">(opcional)</span></label>
+        <input
+          v-model="form.quien_puede_aplicar"
+          type="text"
+          class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+          placeholder="Individuos, ONGs, periodistas..."
+        />
+      </div>
+    </template>
+
     <!-- red -->
     <div v-if="form.type === 'red'">
       <label class="block text-xs font-medium text-text-muted mb-1">¿Cómo unirse?</label>
@@ -436,4 +571,23 @@ function handleSubmit() {
       </button>
     </div>
   </form>
+
+  <!-- Tag suggestions teleported to body to escape modal overflow -->
+  <Teleport to="body">
+    <div
+      v-if="showSuggestions && tagSuggestions.length"
+      class="fixed z-[200] bg-bg-surface border border-border-base rounded-lg shadow-lg py-1 max-h-48 overflow-y-auto"
+      :style="{ top: suggestionsPos.top + 'px', left: suggestionsPos.left + 'px', width: suggestionsPos.width + 'px' }"
+    >
+      <button
+        v-for="s in tagSuggestions"
+        :key="s"
+        type="button"
+        @mousedown.prevent="addTag(s)"
+        class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
+      >
+        {{ s }}
+      </button>
+    </div>
+  </Teleport>
 </template>

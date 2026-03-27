@@ -29,6 +29,7 @@ const typeOptions = [
   { value: 'evento', label: 'Eventos / Actividades' },
   { value: 'red', label: 'Redes' },
   { value: 'linea_ayuda', label: 'Líneas de Ayuda' },
+  { value: 'beca', label: 'Becas / Fellowships' },
 ]
 
 const followedOpportunities = computed(() => {
@@ -88,6 +89,7 @@ const groupOrder = [
   { type: 'evento', label: 'Eventos / Actividades' },
   { type: 'red', label: 'Redes' },
   { type: 'linea_ayuda', label: 'Líneas de Ayuda' },
+  { type: 'beca', label: 'Becas / Fellowships' },
 ]
 
 const showGroups = computed(() => !typeFilter.value)
@@ -108,6 +110,7 @@ const typeLabel = {
   evento: 'Evento / Actividad',
   red: 'Red',
   linea_ayuda: 'Línea de Ayuda',
+  beca: 'Beca / Fellowship',
 }
 
 function exportCSV() {

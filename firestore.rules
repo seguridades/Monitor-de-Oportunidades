@@ -34,7 +34,9 @@ service cloud.firestore {
 
     // ---- opportunities ----
     match /opportunities/{opportunityId} {
-      // Approved opps: all active users can read
+      // Public read: approved opportunities (base for public catalog + login counters)
+      allow read: if resource.data.status != 'pendiente_aprobacion';
+      // Approved opps: all active users can also read (covers canEdit for list queries)
       allow read: if isActiveUser() && resource.data.status != 'pendiente_aprobacion';
       // Pending: only admin + moderador can read
       allow read: if canEdit();
@@ -79,9 +81,15 @@ service cloud.firestore {
             .hasOnly(['lastSeen', 'displayName', 'org']));
     }
 
+    // ---- reports ----
+    match /reports/{reportId} {
+      allow create: if isAuthenticated() && request.resource.data.reportedBy == request.auth.uid;
+      allow read, update: if canEdit();
+    }
+
     // ---- notifications ----
     match /notifications/{notificationId} {
-      allow read, update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow create: if canEdit();
     }

@@ -23,11 +23,12 @@ const steps = computed(() => {
     {
       icon: Search,
       title: 'Explora las oportunidades',
-      body: 'En la vista principal encontrarás todas las oportunidades agrupadas por tipo: Fuentes, Convocatorias, Grants, Capacitaciones, Eventos / Actividades y Redes.',
+      body: 'En la vista principal encontrarás todas las oportunidades agrupadas por tipo: Fuentes, Convocatorias, Grants, Becas / Fellowships, Capacitaciones, Eventos, Redes y Líneas de Ayuda.',
       bullets: [
         'Usa los filtros del panel izquierdo para acotar por tipo o estado.',
-        'Busca por nombre, descripción o etiqueta en el buscador.',
+        'Busca por nombre, descripción o etiqueta en el buscador (en tiempo real).',
         'Haz clic en cualquier etiqueta de una tarjeta para filtrar por ella.',
+        'Desde cada tarjeta podés copiar el enlace externo o reportar información incorrecta.',
       ],
     },
     {
@@ -37,6 +38,7 @@ const steps = computed(() => {
       bullets: [
         'En Mi Lista puedes cambiar tu estado: Nueva, Siguiendo, Aplicando, Aplicada o Descartada.',
         'Puedes agregar notas privadas con fecha y hora sobre cada oportunidad.',
+        'Podés exportar tu lista a CSV o agregar deadlines directamente a tu calendario.',
         'Nadie más ve tu estado ni tus notas desde la app.*',
         '* Los datos se guardan en texto plano en la base de datos. Quien tenga acceso directo a la DB podría leerlos.',
       ],
@@ -49,12 +51,14 @@ const steps = computed(() => {
         : 'Como moderador puedes agregar, editar y aprobar oportunidades.',
       bullets: auth.isAdmin ? [
         'Aprobá o rechazá oportunidades propuestas por invitados.',
+        'Revisá los reportes de usuarios en la sección Reportes.',
         'Invitá nuevos usuarios y asignales su rol.',
         'Editá o eliminá oportunidades del catálogo.',
         'Importá oportunidades en lote desde JSON.',
       ] : [
         'Usá el botón "+ Agregar" para publicar directamente.',
         'Revisá y aprobá las propuestas desde la sección Pendientes.',
+        'Revisá los reportes de usuarios en la sección Reportes.',
         'Podés editar cualquier oportunidad del catálogo.',
       ],
     }] : [{

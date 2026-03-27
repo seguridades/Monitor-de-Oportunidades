@@ -1,11 +1,13 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText, ArrowRight, Plus, Trash2, Archive, ArchiveRestore } from 'lucide-vue-next'
+import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText, ArrowRight, Plus, Trash2, Archive, ArchiveRestore, Flag, CalendarPlus, Link } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
 import { useFollowsStore } from '@/stores/follows'
+import { useReportsStore } from '@/stores/reports'
+import { downloadIcs, googleCalendarUrl } from '@/utils/calendar'
 import OpportunityStatusBadge from './OpportunityStatusBadge.vue'
 import AppTag from '@/components/ui/AppTag.vue'
 import AppConfirm from '@/components/ui/AppConfirm.vue'
@@ -20,11 +22,19 @@ const router = useRouter()
 const auth = useAuthStore()
 const opps = useOpportunitiesStore()
 const follows = useFollowsStore()
+const reportsStore = useReportsStore()
 
 const showMenu = ref(false)
 const showNotes = ref(false)
 const showDeleteConfirm = ref(false)
 const showDetail = ref(false)
+const showReportModal = ref(false)
+const showCalendarMenu = ref(false)
+const calendarMenuPos = ref({ top: 0, left: 0 })
+const calendarBtnRef = ref(null)
+const reportReason = ref('link_roto')
+const reportComment = ref('')
+const submittingReport = ref(false)
 const newNoteText = ref('')
 const savingNote = ref(false)
 
@@ -66,6 +76,7 @@ const typeBadgeClass = {
   evento:       'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400',
   red:          'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400',
   linea_ayuda:  'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400',
+  beca:         'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400',
 }
 const typeLabel = {
   fuente: 'Fuente',
@@ -75,6 +86,7 @@ const typeLabel = {
   evento: 'Evento / Actividad',
   red: 'Red',
   linea_ayuda: 'Línea de Ayuda',
+  beca: 'Beca / Fellowship',
 }
 const externalLinkLabel = {
   fuente: 'Ver fuente',
@@ -84,6 +96,7 @@ const externalLinkLabel = {
   evento: 'Ver evento',
   red: 'Conectar',
   linea_ayuda: 'Solicitar ayuda',
+  beca: 'Aplicar',
 }
 
 
@@ -117,6 +130,44 @@ const deadlineData = computed(() => {
   return deadlineInfo(opp.deadline || opp.fecha || null)
 })
 
+// Date used for calendar export (deadline or fecha depending on type)
+const calendarDate = computed(() => {
+  const opp = props.opportunity
+  const types = ['convocatoria', 'grant', 'beca', 'capacitacion', 'evento']
+  if (!types.includes(opp.type)) return null
+  return opp.deadline || opp.fecha || null
+})
+
+function calendarPayload() {
+  const opp = props.opportunity
+  const isDeadline = ['convocatoria', 'grant', 'beca'].includes(opp.type)
+  return {
+    title: isDeadline ? `Cierre: ${opp.title}` : opp.title,
+    date: calendarDate.value,
+    description: opp.description || '',
+    url: opp.url || '',
+  }
+}
+
+function openCalendarMenu() {
+  if (calendarBtnRef.value) {
+    const rect = calendarBtnRef.value.getBoundingClientRect()
+    calendarMenuPos.value = { top: rect.bottom + 4, left: rect.left }
+  }
+  showCalendarMenu.value = true
+}
+
+function openGoogleCalendar() {
+  const url = googleCalendarUrl(calendarPayload())
+  if (url) window.open(url, '_blank', 'noopener')
+  showCalendarMenu.value = false
+}
+
+function downloadCalendar() {
+  downloadIcs(calendarPayload())
+  showCalendarMenu.value = false
+}
+
 async function handleFollow() {
   if (following.value) {
     // In general list: navigate to Mi Lista instead of unfollowing
@@ -143,6 +194,37 @@ async function confirmDelete() {
   showDeleteConfirm.value = false
   await opps.deleteOpportunity(props.opportunity.id)
   toast.success('Oportunidad eliminada')
+}
+
+async function copyUrl() {
+  if (!props.opportunity.url) return
+  try {
+    await navigator.clipboard.writeText(props.opportunity.url)
+    toast.success('Enlace copiado')
+  } catch {
+    toast.error('No se pudo copiar el enlace')
+  }
+}
+
+async function submitReport() {
+  if (submittingReport.value) return
+  submittingReport.value = true
+  try {
+    await reportsStore.createReport({
+      opportunityId: props.opportunity.id,
+      opportunityTitle: props.opportunity.title,
+      reason: reportReason.value,
+      comment: reportComment.value,
+    })
+    showReportModal.value = false
+    reportReason.value = 'link_roto'
+    reportComment.value = ''
+    toast.success('Reporte enviado, gracias')
+  } catch {
+    toast.error('Error al enviar el reporte')
+  } finally {
+    submittingReport.value = false
+  }
 }
 
 async function toggleArchive() {
@@ -343,6 +425,15 @@ async function handlePersonalStatusChange(value) {
         <div v-if="opportunity.type === 'red' && opportunity.como_unirse">
           {{ opportunity.como_unirse }}
         </div>
+        <template v-if="opportunity.type === 'beca'">
+          <div v-if="opportunity.monto" class="text-text-primary font-semibold">{{ opportunity.monto }}</div>
+          <div v-if="opportunity.duracion">Duración: {{ opportunity.duracion }}</div>
+          <div v-if="opportunity.quien_puede_aplicar" class="text-text-muted">{{ opportunity.quien_puede_aplicar }}</div>
+          <div v-if="deadlineData" :class="deadlineData.colorClass">
+            Cierre: {{ deadlineData.formatted }}
+          </div>
+          <div v-else class="text-accent text-xs">Convocatoria abierta</div>
+        </template>
         <template v-if="opportunity.type === 'linea_ayuda'">
           <div v-if="opportunity.respuesta_rapida" class="text-rose-600 dark:text-rose-400 font-medium">⚡ Respuesta rápida</div>
           <div v-if="opportunity.como_acceder">Acceso: {{ opportunity.como_acceder }}</div>
@@ -384,6 +475,37 @@ async function handlePersonalStatusChange(value) {
           Notas{{ followData?.notes?.length ? ` (${followData.notes.length})` : '' }}
         </button>
 
+
+        <!-- Calendar button (Mi Lista only) -->
+        <div v-if="calendarDate && showFollowPanel">
+          <button
+            ref="calendarBtnRef"
+            @click="openCalendarMenu"
+            class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-text-muted hover:text-accent hover:bg-accent/10 transition-colors border border-transparent hover:border-accent/20"
+            title="Agregar al calendario"
+          >
+            <CalendarPlus class="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <!-- Copy URL -->
+        <button
+          v-if="opportunity.url"
+          @click="copyUrl"
+          class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-text-muted hover:text-accent hover:bg-accent/10 transition-colors border border-transparent hover:border-accent/20"
+          title="Copiar enlace"
+        >
+          <Link class="w-3.5 h-3.5" />
+        </button>
+
+        <!-- Report button -->
+        <button
+          @click="showReportModal = true"
+          class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-text-muted hover:text-danger hover:bg-danger/10 transition-colors border border-transparent hover:border-danger/20"
+          title="Reportar oportunidad"
+        >
+          <Flag class="w-3.5 h-3.5" />
+        </button>
 
         <!-- Personal Follow -->
         <button
@@ -460,6 +582,87 @@ async function handlePersonalStatusChange(value) {
 
   </div>
 
+  <!-- Calendar dropdown -->
+  <Teleport to="body">
+    <template v-if="showCalendarMenu">
+      <div class="fixed inset-0 z-40" @click="showCalendarMenu = false" />
+      <div
+        class="fixed z-50 w-44 bg-bg-surface border border-border-base rounded-lg shadow-lg py-1"
+        :style="{ top: calendarMenuPos.top + 'px', left: calendarMenuPos.left + 'px' }"
+      >
+        <button
+          @click="openGoogleCalendar"
+          class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
+        >
+          Google Calendar
+        </button>
+        <button
+          @click="downloadCalendar"
+          class="w-full text-left px-3 py-1.5 text-xs text-text-primary hover:bg-bg-surface-2 transition-colors"
+        >
+          Descargar .ics
+        </button>
+      </div>
+    </template>
+  </Teleport>
+
+  <!-- Report modal -->
+  <Teleport to="body">
+    <div v-if="showReportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showReportModal = false" />
+      <div class="relative bg-bg-surface border border-border-base rounded-2xl shadow-2xl w-full max-w-sm">
+        <div class="p-6 space-y-4">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h3 class="text-sm font-semibold text-text-primary">Reportar oportunidad</h3>
+              <p class="text-xs text-text-muted mt-0.5 line-clamp-1">{{ opportunity.title }}</p>
+            </div>
+            <button @click="showReportModal = false" class="shrink-0 text-text-muted hover:text-text-primary p-1 rounded transition-colors">✕</button>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-text-muted mb-1">Motivo</label>
+            <select
+              v-model="reportReason"
+              class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm focus:outline-none focus:border-accent transition-colors"
+            >
+              <option value="link_roto">Link roto o inaccesible</option>
+              <option value="desactualizada">Información desactualizada</option>
+              <option value="duplicado">Es un duplicado</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-text-muted mb-1">Comentario <span class="font-normal">(opcional)</span></label>
+            <textarea
+              v-model="reportComment"
+              rows="3"
+              placeholder="Agrega contexto si lo necesitás..."
+              class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors resize-none"
+            />
+          </div>
+
+          <div class="flex gap-2 justify-end pt-1">
+            <button
+              @click="showReportModal = false"
+              class="px-4 py-2 rounded-lg text-sm text-text-muted hover:text-text-primary hover:bg-bg-surface-2 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              @click="submitReport"
+              :disabled="submittingReport"
+              class="px-4 py-2 rounded-lg bg-danger text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {{ submittingReport ? 'Enviando...' : 'Enviar reporte' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
   <!-- Detail modal -->
   <Teleport to="body">
     <div v-if="showDetail" class="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -510,6 +713,13 @@ async function handlePersonalStatusChange(value) {
             <div v-if="opportunity.type === 'red' && opportunity.como_unirse">
               Cómo unirse: <span class="text-text-primary">{{ opportunity.como_unirse }}</span>
             </div>
+            <template v-if="opportunity.type === 'beca'">
+              <div v-if="opportunity.monto">Estipendio: <span class="text-text-primary font-medium">{{ opportunity.monto }}</span></div>
+              <div v-if="opportunity.duracion">Duración: <span class="text-text-primary">{{ opportunity.duracion }}</span></div>
+              <div v-if="opportunity.quien_puede_aplicar">Aplica: <span class="text-text-primary">{{ opportunity.quien_puede_aplicar }}</span></div>
+              <div v-if="deadlineData">Cierre: <span :class="deadlineData.colorClass">{{ deadlineData.formatted }} ({{ deadlineData.urgency }})</span></div>
+              <div v-else class="text-accent">Convocatoria abierta</div>
+            </template>
             <template v-if="opportunity.type === 'linea_ayuda'">
               <div v-if="opportunity.respuesta_rapida" class="text-rose-600 dark:text-rose-400 font-medium">⚡ Respuesta rápida</div>
               <div v-if="opportunity.como_acceder">Acceso: <span class="text-text-primary">{{ opportunity.como_acceder }}</span></div>

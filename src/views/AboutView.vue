@@ -93,13 +93,6 @@
         <div class="bg-bg-surface border border-border-base rounded-xl p-4 flex items-start gap-3">
           <span class="text-accent shrink-0 mt-0.5">→</span>
           <div>
-            <p class="text-sm font-medium text-text-primary">Exportar a calendario</p>
-            <p class="text-xs text-text-muted mt-0.5">Agregar deadlines directamente a Google Calendar o iCal desde la tarjeta de la oportunidad.</p>
-          </div>
-        </div>
-        <div class="bg-bg-surface border border-border-base rounded-xl p-4 flex items-start gap-3">
-          <span class="text-accent shrink-0 mt-0.5">→</span>
-          <div>
             <p class="text-sm font-medium text-text-primary">Vista kanban en Mi Lista</p>
             <p class="text-xs text-text-muted mt-0.5">Gestionar el seguimiento personal con una vista tipo tablero, agrupada por estados.</p>
           </div>

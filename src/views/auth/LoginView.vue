@@ -1,11 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { loginWithEmail } from '@/firebase/auth'
 import { logout } from '@/firebase/auth'
 import { db } from '@/firebase/config'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, getDocs, collection, query, where, orderBy } from 'firebase/firestore'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -16,6 +16,37 @@ const email = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
+
+const typeCounts = ref([])
+
+const typeConfig = [
+  { type: 'convocatoria', label: 'Convocatorias',       badge: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400' },
+  { type: 'grant',        label: 'Grants',               badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400' },
+  { type: 'beca',         label: 'Becas / Fellowships',  badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400' },
+  { type: 'capacitacion', label: 'Capacitaciones',       badge: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400' },
+  { type: 'evento',       label: 'Eventos',              badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400' },
+  { type: 'red',          label: 'Redes',                badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400' },
+  { type: 'linea_ayuda',  label: 'Líneas de ayuda',      badge: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400' },
+  { type: 'fuente',       label: 'Fuentes',              badge: 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300' },
+]
+
+onMounted(async () => {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'opportunities'), where('status', '!=', 'pendiente_aprobacion'), orderBy('status'))
+    )
+    const counts = {}
+    snap.docs.forEach(d => {
+      const t = d.data().type
+      if (t) counts[t] = (counts[t] || 0) + 1
+    })
+    typeCounts.value = typeConfig
+      .map(c => ({ ...c, count: counts[c.type] || 0 }))
+      .filter(c => c.count > 0)
+  } catch {
+    // Si falla la query pública, simplemente no se muestra
+  }
+})
 
 async function checkAndLoadProfile(uid) {
   const snap = await getDoc(doc(db, 'users', uid))
@@ -92,8 +123,25 @@ async function handleEmailLogin() {
         </form>
       </div>
 
+      <!-- Catalog counters -->
+      <div v-if="typeCounts.length > 0" class="w-full space-y-2">
+        <p class="text-xs text-text-muted text-center">Catálogo actual</p>
+        <div class="flex flex-wrap justify-center gap-2">
+          <div
+            v-for="item in typeCounts"
+            :key="item.type"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border-base bg-bg-surface"
+          >
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" :class="item.badge">
+              {{ item.label }}
+            </span>
+            <span class="text-sm font-semibold text-text-primary">{{ item.count }}</span>
+          </div>
+        </div>
+      </div>
+
       <p class="text-xs text-text-muted text-center">
-        Acceso restringido - solo usuarios invitados
+        Acceso restringido — solo usuarios invitados
       </p>
     </div>
   </div>

@@ -19,14 +19,31 @@ const approvingBatch = ref(false)
 const showDeleteAllConfirm = ref(false)
 const showDeleteSelectedConfirm = ref(false)
 const deletingAll = ref(false)
+const snoozedIds = ref(new Set())
+const showSnoozed = ref(false)
+
+function snooze(id) {
+  const s = new Set(snoozedIds.value)
+  s.add(id)
+  snoozedIds.value = s
+  const sel = new Set(selectedIds.value)
+  sel.delete(id)
+  selectedIds.value = sel
+}
+
+function unsnooze(id) {
+  const s = new Set(snoozedIds.value)
+  s.delete(id)
+  snoozedIds.value = s
+}
 
 const typeLabel = {
   fuente: 'Fuente', convocatoria: 'Convocatoria', grant: 'Grant',
   capacitacion: 'Capacitación', evento: 'Evento / Actividad', red: 'Red',
-  linea_ayuda: 'Línea de Ayuda',
+  linea_ayuda: 'Línea de Ayuda', beca: 'Beca / Fellowship',
 }
 
-const groupOrder = ['fuente', 'convocatoria', 'grant', 'capacitacion', 'evento', 'red', 'linea_ayuda']
+const groupOrder = ['fuente', 'convocatoria', 'grant', 'beca', 'capacitacion', 'evento', 'red', 'linea_ayuda']
 const typeBadgeClass = {
   fuente:       'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300',
   convocatoria: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-400',
@@ -35,6 +52,7 @@ const typeBadgeClass = {
   evento:       'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400',
   red:          'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400',
   linea_ayuda:  'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400',
+  beca:         'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400',
 }
 
 // Unique import batches present in pending list
@@ -47,11 +65,16 @@ const availableBatches = computed(() => {
 
 const filteredPending = computed(() => {
   return opps.pending.filter(o => {
+    if (snoozedIds.value.has(o.id)) return false
     if (batchFilter.value && o.importBatch !== batchFilter.value) return false
     if (typeFilter.value && o.type !== typeFilter.value) return false
     return true
   })
 })
+
+const snoozedList = computed(() =>
+  opps.pending.filter(o => snoozedIds.value.has(o.id))
+)
 
 const availableTypes = computed(() => {
   const batchFiltered = batchFilter.value
@@ -357,6 +380,13 @@ async function handleEditSubmit(data) {
               <div v-if="opp.disponibilidad">Disponibilidad: <span class="text-text-primary">{{ opp.disponibilidad }}</span></div>
               <div v-if="opp.para_quien">Para: <span class="text-text-primary">{{ opp.para_quien }}</span></div>
             </template>
+            <!-- beca -->
+            <template v-if="opp.type === 'beca'">
+              <div v-if="opp.monto">Estipendio: <span class="text-text-primary font-medium">{{ opp.monto }}</span></div>
+              <div v-if="opp.duracion">Duración: <span class="text-text-primary">{{ opp.duracion }}</span></div>
+              <div v-if="opp.quien_puede_aplicar">Aplica: <span class="text-text-primary">{{ opp.quien_puede_aplicar }}</span></div>
+              <div v-if="opp.deadline">Cierre: <span class="text-text-primary">{{ formatDate(opp.deadline) }}</span></div>
+            </template>
             <!-- red -->
             <div v-if="opp.type === 'red' && opp.como_unirse">
               Cómo unirse: <span class="text-text-primary">{{ opp.como_unirse }}</span>
@@ -397,6 +427,12 @@ async function handleEditSubmit(data) {
           </button>
           <div class="flex-1" />
           <button
+            @click="snooze(opp.id)"
+            class="px-3 py-1.5 rounded-lg border border-border-base text-text-muted text-xs hover:text-text-primary hover:border-border-base transition-colors"
+          >
+            Revisar después
+          </button>
+          <button
             @click="editingOpp = opp"
             class="px-3 py-1.5 rounded-lg border border-border-base text-text-muted text-xs hover:text-text-primary hover:border-accent transition-colors"
           >
@@ -406,6 +442,40 @@ async function handleEditSubmit(data) {
           </div><!-- end card -->
         </div><!-- end group cards -->
       </template><!-- end group -->
+      <!-- Snoozed section -->
+      <div v-if="snoozedList.length > 0" class="mt-6">
+        <button
+          @click="showSnoozed = !showSnoozed"
+          class="flex items-center gap-2 text-xs text-text-muted hover:text-text-primary transition-colors w-full mb-3"
+        >
+          <span class="flex-1 h-px bg-border-base" />
+          <span>{{ showSnoozed ? '▾' : '▸' }} Para revisar después ({{ snoozedList.length }})</span>
+          <span class="flex-1 h-px bg-border-base" />
+        </button>
+        <div v-if="showSnoozed" class="space-y-3 opacity-60">
+          <div
+            v-for="opp in snoozedList"
+            :key="opp.id"
+            class="bg-bg-surface border border-border-base rounded-xl overflow-hidden"
+          >
+            <div class="px-4 py-3 flex items-center gap-3">
+              <span
+                class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium shrink-0"
+                :class="typeBadgeClass[opp.type] ?? 'bg-zinc-200 text-zinc-700'"
+              >
+                {{ typeLabel[opp.type] ?? opp.type }}
+              </span>
+              <p class="text-sm text-text-primary font-medium flex-1 min-w-0 truncate">{{ opp.title }}</p>
+              <button
+                @click="unsnooze(opp.id)"
+                class="shrink-0 text-xs text-accent hover:underline"
+              >
+                Devolver
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

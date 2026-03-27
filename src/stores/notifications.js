@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { db } from '@/firebase/config'
 import {
-  collection, doc, addDoc, updateDoc, query,
+  collection, doc, addDoc, updateDoc, deleteDoc, query,
   where, onSnapshot, serverTimestamp, writeBatch,
 } from 'firebase/firestore'
 import { useAuthStore } from '@/stores/auth'
@@ -52,6 +52,18 @@ export const useNotificationsStore = defineStore('notifications', () => {
     await batch.commit()
   }
 
+  async function deleteNotification(id) {
+    await deleteDoc(doc(db, 'notifications', id))
+  }
+
+  async function deleteAllRead() {
+    const read = notifications.value.filter(n => n.read)
+    if (!read.length) return
+    const batch = writeBatch(db)
+    read.forEach(n => batch.delete(doc(db, 'notifications', n.id)))
+    await batch.commit()
+  }
+
   async function createNotification(userId, type, opportunityTitle) {
     await addDoc(collection(db, 'notifications'), {
       userId,
@@ -65,6 +77,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
   return {
     notifications, loading, unreadCount,
     subscribe, stopSubscription,
-    markAllRead, createNotification,
+    markAllRead, deleteNotification, deleteAllRead, createNotification,
   }
 })
