@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { toast } from 'vue-sonner'
-import { Plus, Search, X } from 'lucide-vue-next'
+import { Plus, Search, X, ArrowUpDown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
 import { useFollowsStore } from '@/stores/follows'
@@ -23,6 +23,7 @@ const tagFilter = ref('')
 const hideFollowed = ref(false)
 const showFilterPanel = ref(false)
 const showArchived = ref(false)
+const sortBy = ref('deadline')
 
 // Modal state
 const showModal = ref(false)
@@ -92,16 +93,31 @@ const filteredOpportunities = computed(() => {
 
   // Search
   if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase()
+    const raw = searchQuery.value.trim().toLowerCase()
+    // Strip protocol and www so "https://www.sipiapa.org" matches "sipiapa.org"
+    const q = raw.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')
     list = list.filter(o =>
       o.title?.toLowerCase().includes(q) ||
       o.description?.toLowerCase().includes(q) ||
+      o.url?.toLowerCase().replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '').includes(q) ||
       (Array.isArray(o.tags) && o.tags.some(t => t.toLowerCase().includes(q)))
     )
   }
 
-  // Sort: deadline asc (null last)
+  // Sort
   return [...list].sort((a, b) => {
+    if (sortBy.value === 'titulo') {
+      return (a.title ?? '').localeCompare(b.title ?? '', 'es')
+    }
+    if (sortBy.value === 'ingreso') {
+      const dA = a.createdAt?.toDate ? a.createdAt.toDate() : a.createdAt ? new Date(a.createdAt) : null
+      const dB = b.createdAt?.toDate ? b.createdAt.toDate() : b.createdAt ? new Date(b.createdAt) : null
+      if (!dA && !dB) return 0
+      if (!dA) return 1
+      if (!dB) return -1
+      return dB - dA // newest first
+    }
+    // default: deadline asc (null last)
     const dA = a.deadline?.toDate ? a.deadline.toDate() : a.deadline ? new Date(a.deadline) : null
     const dB = b.deadline?.toDate ? b.deadline.toDate() : b.deadline ? new Date(b.deadline) : null
     if (!dA && !dB) return 0
@@ -288,6 +304,8 @@ async function handleFormSubmit(data) {
           <input
             v-model="searchQuery"
             type="text"
+            name="search"
+            autocomplete="off"
             placeholder="Buscar..."
             class="w-full pl-8 py-1.5 rounded-lg border border-border-base bg-bg-surface text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
             :class="searchQuery ? 'pr-7' : 'pr-3'"
@@ -299,6 +317,20 @@ async function handleFormSubmit(data) {
           >
             <X class="w-3.5 h-3.5" />
           </button>
+        </div>
+
+        <!-- Sort selector -->
+        <div class="relative shrink-0">
+          <ArrowUpDown class="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
+          <select
+            v-model="sortBy"
+            name="sort"
+            class="pl-7 pr-2 py-1.5 rounded-lg border border-border-base bg-bg-surface text-text-muted text-sm focus:outline-none focus:border-accent transition-colors appearance-none cursor-pointer hover:text-text-primary"
+          >
+            <option value="deadline">Por deadline</option>
+            <option value="ingreso">Más recientes</option>
+            <option value="titulo">Por título</option>
+          </select>
         </div>
 
         <!-- Clear all filters (when active and search not the only thing) -->

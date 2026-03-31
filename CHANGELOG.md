@@ -5,6 +5,27 @@ Versionado: [Semantic Versioning](https://semver.org/lang/es/) — `Major.Minor.
 
 ---
 
+## [0.5.2] — 2026-03-31
+
+### Agregado
+- **Ordenar catálogo**: selector en el header para ordenar por deadline (default), más recientes (por fecha de ingreso) o título alfabético
+
+### Cambiado
+- **Cierre por inactividad**: ahora muestra un modal de aviso ("¿Seguís ahí?") con countdown de 60 segundos antes de cerrar la sesión, en lugar de cerrarla silenciosamente
+
+### Corregido
+- Tutorial de bienvenida aparecía en cada recarga por clave de `localStorage` desincronizada entre `AppShell` y `WelcomeModal`
+- Campos de búsqueda y selector de ordenamiento sin atributo `name`, lo que generaba warnings de accesibilidad en el panel Issues del navegador
+
+---
+
+## [0.5.1] — 2026-03-27
+
+### Cambiado
+- Búsqueda incluye el campo URL, permitiendo encontrar oportunidades pegando su enlace directamente
+
+---
+
 ## [0.5.0] — 2026-03-27
 
 ### Agregado
