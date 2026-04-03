@@ -5,6 +5,20 @@ Versionado: [Semantic Versioning](https://semver.org/lang/es/) — `Major.Minor.
 
 ---
 
+## [0.6.0] — 2026-04-03
+
+### Agregado
+- **Catálogo público** (`/`): vista sin login con filtros por tipo y búsqueda. Es el nuevo index de la app — usuarios autenticados son redirigidos automáticamente al catálogo privado (`/catalog`)
+- **Compartir link público**: botón en cada tarjeta (usuarios autenticados) que copia un link directo a la oportunidad en la vista pública (`/public?id=xxx`)
+- **Detección de duplicados**: al proponer o agregar una oportunidad, el formulario avisa en tiempo real si ya existe una entrada con título similar o la misma URL
+- **Recordatorios de deadline**: al seguir una oportunidad con deadline (convocatoria, grant, beca), se puede activar un recordatorio de 1, 3 o 7 días antes. Al abrir la app se genera una notificación in-app si el deadline está dentro del umbral configurado. El recordatorio se puede cambiar o desactivar desde el menú ⋮ en Mi Lista. Un ícono de campana con los días aparece en la tarjeta cuando hay recordatorio activo
+
+### Cambiado
+- Catálogo autenticado movido a `/catalog` (antes `/`)
+- Login y aceptación de invitación redirigen a `/catalog` tras autenticarse
+
+---
+
 ## [0.5.2] — 2026-03-31
 
 ### Agregado

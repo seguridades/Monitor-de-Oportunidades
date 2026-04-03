@@ -141,6 +141,41 @@ watch(
 
 const today = new Date().toISOString().split('T')[0]
 
+// Duplicate detection
+function normalizeTitle(t) {
+  return t.toLowerCase().trim().replace(/\s+/g, ' ')
+}
+function normalizeUrl(u) {
+  return u.toLowerCase().trim()
+    .replace(/^https?:\/\/(www\.)?/, '')
+    .replace(/\/$/, '')
+}
+
+const duplicates = computed(() => {
+  const results = []
+  const title = normalizeTitle(form.value.title)
+  const url = normalizeUrl(form.value.url)
+  const editingId = props.opportunity?.id
+
+  for (const opp of opps.allOpportunities) {
+    if (opp.id === editingId) continue
+
+    if (url.length > 0 && opp.url && normalizeUrl(opp.url) === url) {
+      results.push({ reason: 'url', match: opp })
+      continue
+    }
+
+    if (title.length >= 5 && opp.title) {
+      const oppTitle = normalizeTitle(opp.title)
+      if (title.includes(oppTitle) || oppTitle.includes(title)) {
+        results.push({ reason: 'title', match: opp })
+      }
+    }
+  }
+
+  return results
+})
+
 const deadlineIsPast = computed(() =>
   !!form.value.deadline && form.value.deadline < today
 )
@@ -257,6 +292,20 @@ function handleSubmit() {
         class="w-full px-3 py-2 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
         placeholder="https://..."
       />
+    </div>
+
+    <!-- Duplicate warning -->
+    <div
+      v-if="duplicates.length > 0"
+      class="rounded-lg border border-amber/40 bg-amber/8 px-3 py-2.5 space-y-1.5"
+    >
+      <p class="text-xs font-medium text-amber">⚠ Posible duplicado</p>
+      <div v-for="d in duplicates" :key="d.match.id" class="text-xs text-text-muted">
+        <span v-if="d.reason === 'url'">Misma URL:</span>
+        <span v-else>Título similar:</span>
+        <span class="text-text-primary ml-1">{{ d.match.title }}</span>
+      </div>
+      <p class="text-xs text-text-muted">Puedes igualmente guardar si es una entrada diferente.</p>
     </div>
 
     <!-- Tags -->

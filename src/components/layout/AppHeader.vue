@@ -115,13 +115,20 @@ function formatDate(ts) {
               <span
                 class="mt-0.5 shrink-0 w-2 h-2 rounded-full"
                 :class="[
-                  n.type === 'approved' ? 'bg-green-500' : n.type === 'pending' ? 'bg-amber-400' : 'bg-danger',
+                  n.type === 'approved' ? 'bg-green-500'
+                  : n.type === 'pending' ? 'bg-amber-400'
+                  : n.type === 'deadline_reminder' ? 'bg-accent'
+                  : 'bg-danger',
                   n.read ? 'opacity-40' : ''
                 ]"
               />
               <div class="flex-1 min-w-0">
                 <p class="text-xs leading-snug" :class="n.read ? 'text-text-muted' : 'text-text-primary'">
-                  <span v-if="n.type === 'approved'">Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue aprobada y está en el catálogo.</span>
+                  <span v-if="n.type === 'deadline_reminder'">
+                    <template v-if="n.daysUntil === 0">Hoy vence el deadline de <strong>{{ n.opportunityTitle }}</strong>.</template>
+                    <template v-else>Deadline en <strong>{{ n.daysUntil }}</strong> día{{ n.daysUntil !== 1 ? 's' : '' }}: <strong>{{ n.opportunityTitle }}</strong>.</template>
+                  </span>
+                  <span v-else-if="n.type === 'approved'">Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue aprobada y está en el catálogo.</span>
                   <span v-else-if="n.type === 'pending'">Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue recibida y está pendiente de revisión.</span>
                   <span v-else>Tu propuesta <strong>{{ n.opportunityTitle }}</strong> fue rechazada.</span>
                 </p>
@@ -137,6 +144,7 @@ function formatDate(ts) {
             </div>
           </div>
         </div>
+
       </div>
     </div>
 

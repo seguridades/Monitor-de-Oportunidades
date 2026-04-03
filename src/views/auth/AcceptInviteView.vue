@@ -97,7 +97,7 @@ async function handleEmailRegister() {
 
     step.value = 'done'
     toast.success('¡Cuenta creada exitosamente!')
-    router.push('/')
+    router.push('/catalog')
   } catch (e) {
     if (e.code === 'auth/email-already-in-use') {
       errorMsg.value = 'Este email ya está registrado. Intenta iniciar sesión.'

@@ -64,13 +64,14 @@ export const useNotificationsStore = defineStore('notifications', () => {
     await batch.commit()
   }
 
-  async function createNotification(userId, type, opportunityTitle) {
+  async function createNotification(userId, type, opportunityTitle, meta = {}) {
     await addDoc(collection(db, 'notifications'), {
       userId,
       type,
       opportunityTitle,
       read: false,
       createdAt: serverTimestamp(),
+      ...meta,
     })
   }
 

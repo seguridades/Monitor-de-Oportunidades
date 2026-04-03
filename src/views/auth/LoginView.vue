@@ -64,7 +64,7 @@ async function handleEmailLogin() {
     const result = await loginWithEmail(email.value, password.value)
     await checkAndLoadProfile(result.user.uid)
     toast.success('Bienvenido/a')
-    router.push(route.query.redirect || '/')
+    router.push(route.query.redirect || '/catalog')
   } catch (e) {
     if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
       error.value = 'Email o contraseña incorrectos.'

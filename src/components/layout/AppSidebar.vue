@@ -86,7 +86,7 @@ const roleLabelMap = {
   <aside class="flex flex-col w-56 border-r border-border-base bg-bg-surface h-full">
     <!-- Logo -->
     <div class="flex items-center h-14 px-4 border-b border-border-base shrink-0">
-      <RouterLink to="/">
+      <RouterLink to="/catalog">
         <img src="@/assets/logo.svg" alt="seguridades.org" class="h-6" />
       </RouterLink>
     </div>
@@ -94,7 +94,7 @@ const roleLabelMap = {
     <!-- Navigation -->
     <nav class="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
       <RouterLink
-        to="/"
+        to="/catalog"
         class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
         :class="$route.name === 'Opportunities'
           ? 'bg-bg-surface-2 text-text-primary font-medium'

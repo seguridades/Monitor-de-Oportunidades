@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText, ArrowRight, Plus, Trash2, Archive, ArchiveRestore, Flag, CalendarPlus, Link } from 'lucide-vue-next'
+import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText, ArrowRight, Plus, Trash2, Archive, ArchiveRestore, Flag, CalendarPlus, Link, Share2, Bell } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
@@ -15,6 +15,7 @@ import AppConfirm from '@/components/ui/AppConfirm.vue'
 const props = defineProps({
   opportunity: { type: Object, required: true },
   showFollowPanel: { type: Boolean, default: false },
+  publicMode: { type: Boolean, default: false },
 })
 const emit = defineEmits(['edit', 'filter-tag'])
 
@@ -30,6 +31,7 @@ const showDeleteConfirm = ref(false)
 const showDetail = ref(false)
 const showReportModal = ref(false)
 const showCalendarMenu = ref(false)
+const showReminderPrompt = ref(false)
 const calendarMenuPos = ref({ top: 0, left: 0 })
 const calendarBtnRef = ref(null)
 const reportReason = ref('link_roto')
@@ -66,6 +68,9 @@ function openMenu() {
 
 const following = computed(() => follows.isFollowing(props.opportunity.id))
 const followData = computed(() => follows.getFollow(props.opportunity.id))
+const hasDeadlineType = computed(() =>
+  ['convocatoria', 'grant', 'beca'].includes(props.opportunity.type) && !!props.opportunity.deadline
+)
 
 // Type badge config
 const typeBadgeClass = {
@@ -170,12 +175,21 @@ function downloadCalendar() {
 
 async function handleFollow() {
   if (following.value) {
-    // In general list: navigate to Mi Lista instead of unfollowing
     router.push('/my-list')
   } else {
     await follows.follow(props.opportunity.id)
     toast.success('Agregada a tu lista')
+    if (!props.publicMode && hasDeadlineType.value) {
+      showReminderPrompt.value = true
+    }
   }
+}
+
+async function setReminder(days) {
+  await follows.setReminder(props.opportunity.id, days)
+  showReminderPrompt.value = false
+  showMenu.value = false
+  if (days) toast.success(`Recordatorio: ${days} día${days !== 1 ? 's' : ''} antes del deadline`)
 }
 
 async function handleToggleStar() {
@@ -203,6 +217,16 @@ async function copyUrl() {
     toast.success('Enlace copiado')
   } catch {
     toast.error('No se pudo copiar el enlace')
+  }
+}
+
+async function sharePublicLink() {
+  const url = `${window.location.origin}/public?id=${props.opportunity.id}`
+  try {
+    await navigator.clipboard.writeText(url)
+    toast.success('Link público copiado')
+  } catch {
+    toast.error('No se pudo copiar el link')
   }
 }
 
@@ -290,6 +314,16 @@ async function handlePersonalStatusChange(value) {
           ★ Destacada
         </span>
 
+        <!-- Reminder badge -->
+        <span
+          v-if="!publicMode && followData?.reminderDays"
+          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs text-accent/80"
+          :title="`Recordatorio: ${followData.reminderDays} día${followData.reminderDays !== 1 ? 's' : ''} antes del deadline`"
+        >
+          <Bell class="w-3 h-3" />
+          {{ followData.reminderDays }}d
+        </span>
+
         <!-- Menu button: canEdit in general list; all users in My List -->
         <div v-if="showFollowPanel || auth.canEdit">
           <button
@@ -330,6 +364,33 @@ async function handlePersonalStatusChange(value) {
                     <Star class="w-3.5 h-3.5" :class="followData?.starred ? 'fill-amber-400 text-amber-400' : ''" />
                     {{ followData?.starred ? 'Quitar destacado' : 'Destacar' }}
                   </button>
+                  <!-- Recordatorio (solo si tiene deadline) -->
+                  <template v-if="hasDeadlineType">
+                    <div class="h-px bg-border-base my-1" />
+                    <div class="px-3 py-1.5 text-xs text-text-muted font-medium flex items-center gap-1.5">
+                      <Bell class="w-3 h-3" />
+                      Recordatorio
+                      <span v-if="followData?.reminderDays" class="text-accent">({{ followData.reminderDays }}d)</span>
+                    </div>
+                    <button
+                      v-for="d in [7, 3, 1]"
+                      :key="d"
+                      @click="setReminder(d)"
+                      class="w-full text-left px-3 py-1.5 text-xs hover:bg-bg-surface-2 transition-colors flex items-center justify-between"
+                      :class="followData?.reminderDays === d ? 'text-accent font-medium' : 'text-text-primary'"
+                    >
+                      {{ d }} día{{ d !== 1 ? 's' : '' }} antes
+                      <span v-if="followData?.reminderDays === d" class="text-accent text-[10px]">✓</span>
+                    </button>
+                    <button
+                      v-if="followData?.reminderDays"
+                      @click="setReminder(null)"
+                      class="w-full text-left px-3 py-1.5 text-xs text-text-muted hover:bg-bg-surface-2 transition-colors"
+                    >
+                      Desactivar recordatorio
+                    </button>
+                  </template>
+
                   <!-- Dejar de seguir -->
                   <div class="h-px bg-border-base my-1" />
                   <button
@@ -500,6 +561,7 @@ async function handlePersonalStatusChange(value) {
 
         <!-- Report button -->
         <button
+          v-if="!publicMode"
           @click="showReportModal = true"
           class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-text-muted hover:text-danger hover:bg-danger/10 transition-colors border border-transparent hover:border-danger/20"
           title="Reportar oportunidad"
@@ -507,9 +569,19 @@ async function handlePersonalStatusChange(value) {
           <Flag class="w-3.5 h-3.5" />
         </button>
 
+        <!-- Share public link (authenticated users only) -->
+        <button
+          v-if="!publicMode && auth.isAuthenticated"
+          @click="sharePublicLink"
+          class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg text-text-muted hover:text-accent hover:bg-accent/10 transition-colors border border-transparent hover:border-accent/20"
+          title="Compartir link público"
+        >
+          <Share2 class="w-3.5 h-3.5" />
+        </button>
+
         <!-- Personal Follow -->
         <button
-          v-if="!showFollowPanel"
+          v-if="!showFollowPanel && !publicMode"
           @click="handleFollow"
           class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border transition-colors"
           :class="following
@@ -522,6 +594,33 @@ async function handlePersonalStatusChange(value) {
           <ArrowRight v-if="following" class="w-3 h-3 ml-0.5" />
         </button>
       </div>
+    </div>
+
+    <!-- Reminder prompt (post-follow, for opportunities with deadline) -->
+    <div
+      v-if="showReminderPrompt"
+      class="border-t border-border-base px-4 py-3 bg-bg-surface-2"
+    >
+      <p class="text-xs font-medium text-text-primary mb-2 flex items-center gap-1.5">
+        <Bell class="w-3.5 h-3.5 text-accent" />
+        ¿Quieres un recordatorio antes del deadline?
+      </p>
+      <div class="flex flex-wrap gap-2 mb-2">
+        <button
+          v-for="d in [7, 3, 1]"
+          :key="d"
+          @click="setReminder(d)"
+          class="px-2.5 py-1 rounded-lg border border-border-base text-xs text-text-primary hover:border-accent hover:text-accent hover:bg-accent/8 transition-colors"
+        >
+          {{ d }} día{{ d !== 1 ? 's' : '' }} antes
+        </button>
+      </div>
+      <button
+        @click="showReminderPrompt = false"
+        class="text-xs text-text-muted hover:text-text-primary transition-colors"
+      >
+        No, gracias
+      </button>
     </div>
 
     <AppConfirm

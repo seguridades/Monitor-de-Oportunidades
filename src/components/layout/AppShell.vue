@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000 // 30 minutos
 const WARNING_BEFORE = 60 * 1000           // avisar 60 seg antes
@@ -68,11 +68,47 @@ const isOnline = ref(navigator.onLine)
 function handleOnline() { isOnline.value = true }
 function handleOffline() { isOnline.value = false }
 
+async function checkDeadlineReminders() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  for (const follow of follows.follows) {
+    if (!follow.reminderDays) continue
+
+    const opp = opps.allOpportunities.find(o => o.id === follow.opportunityId)
+    if (!opp?.deadline) continue
+
+    const deadline = opp.deadline.toDate ? opp.deadline.toDate() : new Date(opp.deadline)
+    deadline.setHours(0, 0, 0, 0)
+
+    const daysUntil = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24))
+    if (daysUntil < 0 || daysUntil > follow.reminderDays) continue
+
+    const deadlineStr = deadline.toISOString().split('T')[0]
+    if (follow.reminderSentForDeadline === deadlineStr) continue
+
+    await notifs.createNotification(auth.user.uid, 'deadline_reminder', opp.title, { daysUntil })
+    await follows.updateFollow(follow.opportunityId, { reminderSentForDeadline: deadlineStr })
+  }
+}
+
 onMounted(() => {
   opps.subscribe()
   follows.subscribe()
   notifs.subscribe()
   if (auth.canApprove) reportsStore.subscribe()
+
+  // Check deadline reminders once both stores have loaded their first snapshot
+  const stopWatch = watch(
+    [() => follows.loading, () => opps.loading],
+    ([fl, ol]) => {
+      if (!fl && !ol) {
+        stopWatch()
+        checkDeadlineReminders()
+      }
+    }
+  )
+
   if (!localStorage.getItem('monitor_oportunidades_onboarding')) {
     showWelcome.value = true
   }

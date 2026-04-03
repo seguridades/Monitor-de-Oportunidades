@@ -15,12 +15,19 @@ const routes = [
     meta: { public: true },
   },
   {
+    // Public catalog — index, no auth required
+    path: '/',
+    name: 'Public',
+    component: () => import('@/views/PublicView.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/',
     component: () => import('@/components/layout/AppShell.vue'),
     meta: { requiresAuth: true },
     children: [
       {
-        path: '',
+        path: 'catalog',
         name: 'Opportunities',
         component: () => import('@/views/OpportunitiesView.vue'),
       },
@@ -80,6 +87,11 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.requiresRole && !to.meta.requiresRole.includes(authStore.role)) {
+    return { name: 'Opportunities' }
+  }
+
+  // Authenticated users visiting the public index → go to the app catalog
+  if (to.name === 'Public' && authStore.isAuthenticated) {
     return { name: 'Opportunities' }
   }
 

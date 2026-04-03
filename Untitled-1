@@ -1,0 +1,13 @@
+1. Listado público sin login — ruta /public sin auth, toca Firestore rules + router. Habilita también compartir links directos a oportunidades.
+2. Recordatorios de deadline — reminderDays ya existe en el modelo. Implementar chequeo al abrir la app (sin costo, Opción A).
+3. Detección de duplicados — avisar al proponer si ya existe título o URL similar.
+
+Media prioridad
+4. Vista kanban en Mi Lista — agrupar por estados visualmente.
+5. Estadísticas para admin — métricas básicas en el panel de Administración (por tipo, tags más usados, aprobadas/rechazadas).
+
+Menor prioridad
+6. Archivar automáticamente — oportunidades con deadline +30 días pasados → "archivada".
+7. Búsqueda avanzada — filtrar por rango de fechas, monto, modalidad.
+8. Preferencias de notificación — elegir qué tipos recibir.
+9. Paginación — no urgente hasta ~200+ oportunidades.

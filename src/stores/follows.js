@@ -115,6 +115,14 @@ export const useFollowsStore = defineStore('follows', () => {
     })
   }
 
+  // days: 1 | 3 | 7 | null (null = desactivar)
+  async function setReminder(opportunityId, days) {
+    await updateFollow(opportunityId, {
+      reminderDays: days ?? null,
+      reminderSentForDeadline: null,
+    })
+  }
+
   return {
     follows,
     loading,
@@ -127,5 +135,6 @@ export const useFollowsStore = defineStore('follows', () => {
     updateFollow,
     addNote,
     removeNote,
+    setReminder,
   }
 })
