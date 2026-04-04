@@ -1,13 +1,15 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { Search, X } from 'lucide-vue-next'
+import { Search, X, Sun, Moon, LogIn } from 'lucide-vue-next'
 import { db } from '@/firebase/config'
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore'
 import OpportunityCard from '@/components/opportunities/OpportunityCard.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import { useUIStore } from '@/stores/ui'
 
 const route = useRoute()
+const ui = useUIStore()
 
 const opportunities = ref([])
 const loading = ref(true)
@@ -109,43 +111,79 @@ const grouped = computed(() =>
   <div class="min-h-screen bg-bg-base">
 
     <!-- Header -->
-    <header class="sticky top-0 z-20 bg-bg-surface border-b border-border-base px-4 md:px-6 py-3 flex items-center gap-3 flex-wrap">
-      <img src="@/assets/logo.svg" alt="seguridades.org" class="h-7 shrink-0" />
-      <span class="text-text-muted text-sm hidden sm:block">Monitor de Oportunidades</span>
+    <header class="sticky top-0 z-20 bg-bg-surface border-b border-border-base px-4 md:px-6 py-3 relative flex items-center">
 
-      <div class="flex-1" />
-
-      <!-- Search -->
-      <div class="relative w-full sm:w-auto sm:min-w-56 max-w-xs">
-        <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Buscar..."
-          class="w-full pl-8 py-1.5 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
-          :class="searchQuery ? 'pr-7' : 'pr-3'"
-        />
-        <button
-          v-if="searchQuery"
-          @click="searchQuery = ''"
-          class="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-        >
-          <X class="w-3.5 h-3.5" />
-        </button>
+      <!-- Left: logo -->
+      <div class="flex items-center gap-2 shrink-0">
+        <!-- Mobile: mascot favicon -->
+        <img src="/favicon-96x96.png" alt="seguridades.org" class="h-8 w-8 sm:hidden rounded-lg" />
+        <!-- Tablet+: full logo -->
+        <img src="@/assets/logo.svg" alt="seguridades.org" class="h-7 hidden sm:block" />
+        <span class="text-text-muted text-sm hidden md:block">Monitor de Oportunidades</span>
       </div>
 
-      <RouterLink
-        to="/login"
-        class="shrink-0 px-3 py-1.5 rounded-lg bg-accent text-bg-base text-sm font-medium hover:opacity-90 transition-opacity"
-      >
-        Iniciar sesión
-      </RouterLink>
+      <!-- Center: search (absolute so it's truly centered) -->
+      <div class="absolute left-1/2 -translate-x-1/2 w-full max-w-xs sm:max-w-sm px-12 sm:px-0 pointer-events-none">
+        <div class="relative pointer-events-auto">
+          <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Buscar..."
+            class="w-full pl-8 py-1.5 rounded-lg border border-border-base bg-bg-base text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+            :class="searchQuery ? 'pr-7' : 'pr-3'"
+          />
+          <button
+            v-if="searchQuery"
+            @click="searchQuery = ''"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+          >
+            <X class="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Right: actions -->
+      <div class="ml-auto flex items-center gap-1.5 shrink-0">
+        <button
+          @click="ui.toggleTheme()"
+          class="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-bg-surface-2 transition-colors"
+          :aria-label="ui.theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+        >
+          <Sun v-if="ui.theme === 'dark'" class="w-4 h-4" />
+          <Moon v-else class="w-4 h-4" />
+        </button>
+        <RouterLink
+          to="/login"
+          class="p-1.5 rounded-lg bg-accent text-bg-base hover:opacity-90 transition-opacity"
+          aria-label="Iniciar sesión"
+        >
+          <LogIn class="w-4 h-4" />
+        </RouterLink>
+      </div>
+
     </header>
+
+    <!-- Mobile filter bar -->
+    <div class="md:hidden sticky top-13.25 z-10 bg-bg-surface border-b border-border-base px-3 py-2 overflow-x-auto flex gap-1.5 scrollbar-none">
+      <button
+        v-for="opt in typeOptions"
+        :key="opt.value"
+        @click="typeFilter = opt.value"
+        class="shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap"
+        :class="typeFilter === opt.value
+          ? 'bg-accent text-bg-base'
+          : 'bg-bg-surface-2 text-text-muted hover:text-text-primary'"
+      >
+        {{ opt.label }}
+        <span class="ml-1 opacity-60">{{ countByType(opt.value) }}</span>
+      </button>
+    </div>
 
     <div class="flex">
 
       <!-- Sidebar type filter -->
-      <aside class="hidden md:block w-52 shrink-0 border-r border-border-base p-4 sticky top-[53px] h-[calc(100vh-53px)] overflow-y-auto">
+      <aside class="hidden md:block w-52 shrink-0 border-r border-border-base p-4 sticky top-13.25 h-[calc(100vh-53px)] overflow-y-auto">
         <p class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Vista</p>
         <div class="space-y-0.5">
           <button
@@ -169,12 +207,12 @@ const grouped = computed(() =>
         <!-- CTA banner -->
         <div class="mx-6 mt-5 mb-2 p-4 rounded-xl bg-accent/8 border border-accent/20 flex items-center gap-3 flex-wrap">
           <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-text-primary">Catálogo público — seguridades.org</p>
+            <p class="text-sm font-medium text-text-primary">Listado público</p>
             <p class="text-xs text-text-muted mt-0.5">
-              Para hacer seguimiento, agregar notas y proponer oportunidades,
-              <RouterLink to="/login" class="text-accent hover:underline">iniciá sesión</RouterLink>
-              o pedí acceso a
+              <RouterLink to="/login" class="text-accent hover:underline">Iniciá sesión</RouterLink>
+              o solicitá acceso a la beta cerrada en
               <a href="mailto:info@seguridades.org" class="text-accent hover:underline">info@seguridades.org</a>.
+              Con las funciones avanzadas podrás gestionar listas de seguimiento, añadir notas y recordatorios, descargar selecciones en CSV y proponer nuevas oportunidades.
             </p>
           </div>
         </div>

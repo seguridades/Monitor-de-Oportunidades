@@ -5,6 +5,21 @@ Versionado: [Semantic Versioning](https://semver.org/lang/es/) — `Major.Minor.
 
 ---
 
+## [0.6.1] — 2026-04-03
+
+### Agregado
+- **Filtros en mobile (vista pública)**: barra horizontal scrollable con pills debajo del header, visible solo en pantallas pequeñas; el sidebar lateral sigue activo en tablet/desktop
+- **Toggle dark/light en vista pública**: botón de tema en el header público, usando el mismo `useUIStore` que la app autenticada
+- **Preferencias de notificación**: botón de ajustes (engranaje) en el panel de notificaciones permite activar/desactivar tipos (aprobaciones, envíos, rechazos, deadlines). Las preferencias se guardan en `users/{uid}.notifPrefs` en Firestore y persisten por cuenta en cualquier dispositivo
+- **Íconos por tipo en notificaciones**: el puntito de color se reemplazó por íconos lucide distintivos — `CheckCircle2` (aprobaciones), `Clock` (envíos), `XCircle` (rechazos), `CalendarClock` (deadlines)
+
+### Cambiado
+- Header de vista pública reorganizado: logo a la izquierda, buscador centrado con posición absoluta, íconos a la derecha — en mobile el logo se oculta y se muestra el favicon (dinosaurio) en su lugar
+- Botón "Iniciar sesión" en vista pública reducido a solo ícono (`LogIn`) con `aria-label`
+- Banner CTA de vista pública actualizado: título "Listado público", copy renovado mencionando beta cerrada, listas de seguimiento, notas y recordatorios, CSV y propuesta de oportunidades
+
+---
+
 ## [0.6.0] — 2026-04-03
 
 ### Agregado

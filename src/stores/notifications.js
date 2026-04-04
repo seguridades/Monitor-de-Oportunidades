@@ -7,12 +7,35 @@ import {
 } from 'firebase/firestore'
 import { useAuthStore } from '@/stores/auth'
 
+const PREF_DEFAULTS = { approved: true, pending: true, rejected: true, deadline_reminder: true }
+
 export const useNotificationsStore = defineStore('notifications', () => {
   const notifications = ref([])
   const loading = ref(false)
   let unsubscribe = null
 
+  const auth = useAuthStore()
+
+  const notifPrefs = computed(() => ({
+    ...PREF_DEFAULTS,
+    ...(auth.userProfile?.notifPrefs ?? {}),
+  }))
+
   const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
+
+  const visible = computed(() =>
+    notifications.value.filter(n => notifPrefs.value[n.type] !== false)
+  )
+
+  const visibleUnreadCount = computed(() => visible.value.filter(n => !n.read).length)
+
+  async function togglePref(type) {
+    if (!auth.user) return
+    const updated = { ...notifPrefs.value, [type]: !notifPrefs.value[type] }
+    await updateDoc(doc(db, 'users', auth.user.uid), { notifPrefs: updated })
+    // userProfile is updated reactively via auth store's loaded data
+    if (auth.userProfile) auth.userProfile.notifPrefs = updated
+  }
 
   function subscribe() {
     const auth = useAuthStore()
@@ -77,6 +100,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   return {
     notifications, loading, unreadCount,
+    notifPrefs, visible, visibleUnreadCount, togglePref,
     subscribe, stopSubscription,
     markAllRead, deleteNotification, deleteAllRead, createNotification,
   }

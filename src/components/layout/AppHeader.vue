@@ -5,7 +5,7 @@ import { useUIStore } from '@/stores/ui'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
 import { useNotificationsStore } from '@/stores/notifications'
-import { Menu, Sun, Moon, Bell, X } from 'lucide-vue-next'
+import { Menu, Sun, Moon, Bell, X, CheckCircle2, Clock, XCircle, CalendarClock, Settings2 } from 'lucide-vue-next'
 
 const ui = useUIStore()
 const auth = useAuthStore()
@@ -13,10 +13,19 @@ const opps = useOpportunitiesStore()
 const notifs = useNotificationsStore()
 
 const showPanel = ref(false)
+const showPrefs = ref(false)
+
+const notifTypes = [
+  { type: 'approved',          label: 'Aprobaciones',  icon: CheckCircle2, color: 'text-green-500' },
+  { type: 'pending',           label: 'Envíos',         icon: Clock,        color: 'text-amber-400' },
+  { type: 'rejected',          label: 'Rechazos',       icon: XCircle,      color: 'text-danger'    },
+  { type: 'deadline_reminder', label: 'Deadlines',      icon: CalendarClock,color: 'text-accent'    },
+]
 
 function togglePanel() {
   showPanel.value = !showPanel.value
-  if (showPanel.value && notifs.unreadCount > 0) {
+  if (!showPanel.value) showPrefs.value = false
+  if (showPanel.value && notifs.visibleUnreadCount > 0) {
     notifs.markAllRead()
   }
 }
@@ -60,10 +69,10 @@ function formatDate(ts) {
       >
         <Bell class="w-5 h-5" />
         <span
-          v-if="notifs.unreadCount > 0"
+          v-if="notifs.visibleUnreadCount > 0"
           class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-accent text-bg-base text-[10px] font-bold flex items-center justify-center leading-none"
         >
-          {{ notifs.unreadCount }}
+          {{ notifs.visibleUnreadCount }}
         </span>
       </button>
 
@@ -76,49 +85,77 @@ function formatDate(ts) {
         class="fixed z-50 right-4 mt-2 w-80 bg-bg-surface border border-border-base rounded-xl shadow-lg overflow-hidden"
         style="top: 56px"
       >
+        <!-- Panel header -->
         <div class="px-4 py-3 border-b border-border-base flex items-center justify-between">
           <p class="text-sm font-semibold text-text-primary">Notificaciones</p>
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
             <button
-              v-if="notifs.unreadCount > 0"
+              v-if="notifs.visibleUnreadCount > 0"
               @click="notifs.markAllRead()"
               class="text-xs text-accent hover:underline"
             >
               Marcar leídas
             </button>
             <button
-              v-if="notifs.notifications.some(n => n.read)"
+              v-if="notifs.visible.some(n => n.read)"
               @click="notifs.deleteAllRead()"
               class="text-xs text-text-muted hover:text-danger hover:underline"
             >
               Limpiar leídas
             </button>
+            <button
+              @click="showPrefs = !showPrefs"
+              class="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-surface-2 transition-colors"
+              :class="showPrefs ? 'text-accent' : ''"
+              aria-label="Preferencias de notificación"
+            >
+              <Settings2 class="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
+        <!-- Preferences panel -->
+        <div v-if="showPrefs" class="px-4 py-3 border-b border-border-base bg-bg-base">
+          <p class="text-xs font-medium text-text-muted mb-2">Mostrar tipos</p>
+          <div class="space-y-1.5">
+            <label
+              v-for="t in notifTypes"
+              :key="t.type"
+              class="flex items-center gap-2 cursor-pointer group"
+            >
+              <input
+                type="checkbox"
+                :checked="notifs.notifPrefs[t.type]"
+                @change="notifs.togglePref(t.type)"
+                class="accent-accent w-3.5 h-3.5 rounded cursor-pointer"
+              />
+              <component :is="t.icon" class="w-3.5 h-3.5 shrink-0" :class="t.color" />
+              <span class="text-xs text-text-primary group-hover:text-text-primary">{{ t.label }}</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Notification list -->
         <div class="max-h-80 overflow-y-auto">
           <div v-if="notifs.loading" class="px-4 py-6 text-center text-text-muted text-sm">
             Cargando...
           </div>
-          <div v-else-if="notifs.notifications.length === 0" class="px-4 py-8 text-center text-text-muted text-sm">
+          <div v-else-if="notifs.visible.length === 0" class="px-4 py-8 text-center text-text-muted text-sm">
             Sin notificaciones aún
           </div>
           <div v-else>
             <div
-              v-for="n in notifs.notifications"
+              v-for="n in notifs.visible"
               :key="n.id"
               class="group px-4 py-3 border-b border-border-base last:border-0 flex items-start gap-3 transition-colors"
-              :class="n.read
-                ? 'bg-bg-surface'
-                : 'bg-accent/8 border-l-2 border-l-accent'"
+              :class="n.read ? 'bg-bg-surface' : 'bg-accent/8 border-l-2 border-l-accent'"
             >
-              <span
-                class="mt-0.5 shrink-0 w-2 h-2 rounded-full"
+              <!-- Type icon -->
+              <component
+                :is="notifTypes.find(t => t.type === n.type)?.icon ?? Bell"
+                class="mt-0.5 shrink-0 w-4 h-4"
                 :class="[
-                  n.type === 'approved' ? 'bg-green-500'
-                  : n.type === 'pending' ? 'bg-amber-400'
-                  : n.type === 'deadline_reminder' ? 'bg-accent'
-                  : 'bg-danger',
+                  notifTypes.find(t => t.type === n.type)?.color ?? 'text-text-muted',
                   n.read ? 'opacity-40' : ''
                 ]"
               />
