@@ -5,6 +5,16 @@ Versionado: [Semantic Versioning](https://semver.org/lang/es/) — `Major.Minor.
 
 ---
 
+## [0.6.2] — 2026-04-03
+
+### Cambiado
+- **Tarjetas de oportunidad**: borde izquierdo de color por tipo (cyan para convocatorias, azul para grants, violeta para capacitaciones, naranja para eventos, teal para redes, rosa para líneas de ayuda, índigo para becas, zinc para fuentes)
+- **Badge de tipo**: ahora incluye ícono lucide junto al texto — `Megaphone`, `Banknote`, `GraduationCap`, `CalendarDays`, `Network`, `LifeBuoy`, `Trophy`, `Database` según el tipo
+- Hover en tarjetas con sombra más pronunciada (`shadow-md`)
+- Badge de tipo en el modal de detalle también actualizado por consistencia
+
+---
+
 ## [0.6.1] — 2026-04-03
 
 ### Agregado

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText, ArrowRight, Plus, Trash2, Archive, ArchiveRestore, Flag, CalendarPlus, Link, Share2, Bell } from 'lucide-vue-next'
+import { ExternalLink, MoreVertical, Star, Bookmark, BookmarkCheck, FileText, ArrowRight, Plus, Trash2, Archive, ArchiveRestore, Flag, CalendarPlus, Link, Share2, Bell, Database, Megaphone, Banknote, GraduationCap, CalendarDays, Network, LifeBuoy, Trophy } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { useAuthStore } from '@/stores/auth'
 import { useOpportunitiesStore } from '@/stores/opportunities'
@@ -82,6 +82,26 @@ const typeBadgeClass = {
   red:          'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400',
   linea_ayuda:  'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400',
   beca:         'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400',
+}
+const typeBorderClass = {
+  fuente:       'border-l-zinc-400 dark:border-l-zinc-500',
+  convocatoria: 'border-l-cyan-400 dark:border-l-cyan-500',
+  grant:        'border-l-blue-400 dark:border-l-blue-500',
+  capacitacion: 'border-l-violet-400 dark:border-l-violet-500',
+  evento:       'border-l-orange-400 dark:border-l-orange-500',
+  red:          'border-l-teal-400 dark:border-l-teal-500',
+  linea_ayuda:  'border-l-rose-400 dark:border-l-rose-500',
+  beca:         'border-l-indigo-400 dark:border-l-indigo-500',
+}
+const typeIconComponent = {
+  fuente:       Database,
+  convocatoria: Megaphone,
+  grant:        Banknote,
+  capacitacion: GraduationCap,
+  evento:       CalendarDays,
+  red:          Network,
+  linea_ayuda:  LifeBuoy,
+  beca:         Trophy,
 }
 const typeLabel = {
   fuente: 'Fuente',
@@ -287,17 +307,20 @@ async function handlePersonalStatusChange(value) {
 </script>
 
 <template>
-  <div class="relative bg-bg-surface border border-border-base rounded-xl overflow-hidden transition-shadow hover:shadow-sm">
+  <div
+    class="relative bg-bg-surface border border-border-base border-l-4 rounded-xl overflow-hidden transition-all hover:shadow-md"
+    :class="typeBorderClass[opportunity.type] ?? 'border-l-zinc-400 dark:border-l-zinc-500'"
+  >
     <div class="p-4">
       <!-- Header row -->
       <div class="flex items-center gap-1.5 flex-wrap mb-2">
         <span
-          class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+          class="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs font-medium"
           :class="typeBadgeClass[opportunity.type] ?? 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300'"
         >
+          <component :is="typeIconComponent[opportunity.type]" class="w-3 h-3 shrink-0" />
           {{ typeLabel[opportunity.type] ?? opportunity.type }}
         </span>
-
 
         <div class="flex-1" />
 
@@ -773,9 +796,10 @@ async function handlePersonalStatusChange(value) {
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap mb-2">
                 <span
-                  class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                  class="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-xs font-medium"
                   :class="typeBadgeClass[opportunity.type] ?? 'bg-zinc-200 text-zinc-700 dark:bg-zinc-700/50 dark:text-zinc-300'"
                 >
+                  <component :is="typeIconComponent[opportunity.type]" class="w-3 h-3 shrink-0" />
                   {{ typeLabel[opportunity.type] ?? opportunity.type }}
                 </span>
                 <OpportunityStatusBadge :status="opportunity.status" />
