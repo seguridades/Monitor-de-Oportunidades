@@ -8,12 +8,12 @@ Desarrollado por [seguridades.org](https://seguridades.org).
 
 ## ¿Qué es esto?
 
-Una app privada (por ahora, por invitación) donde el equipo de seguridades.org y organizaciones aliadas pueden:
+Tiene un **listado público** accesible sin login y una capa privada (por invitación) con funciones avanzadas:
 
 - Explorar un catálogo curado de oportunidades agrupadas por tipo
 - Proponer nuevas oportunidades para revisión del equipo
-- Llevar seguimiento personal en **Mi Lista**: estado, notas privadas, destacados y exportación a CSV
-- Recibir notificaciones cuando sus propuestas son aprobadas o rechazadas
+- Llevar seguimiento personal en **Mi Lista**: estado, notas privadas, recordatorios de deadline y exportación a CSV
+- Recibir notificaciones cuando sus propuestas son aprobadas o rechazadas, y recordatorios antes del vencimiento de deadlines
 
 ---
 
@@ -97,12 +97,12 @@ src/
 │   └── onboarding/        # WelcomeModal
 ├── views/
 │   ├── auth/              # LoginView, AcceptInviteView
-│   ├── OpportunitiesView  # Listado principal con filtros y agrupación por tipo
+│   ├── PublicView         # Listado público sin login
+│   ├── OpportunitiesView  # Catálogo privado con filtros y agrupación por tipo
 │   ├── MyListView         # Seguimiento personal
 │   ├── PendingView        # Aprobación de propuestas (moderador/admin)
 │   ├── AdminView          # Usuarios, invitaciones, importación en lote
-│   ├── GuideView          # Guía de uso
-│   └── AboutView          # Información, privacidad, tecnología
+│   └── GuideView          # Guía de uso
 ├── stores/                # auth, opportunities, follows, notifications, ui
 ├── firebase/              # config.js, auth.js
 └── router/                # Guards de autenticación y rol
